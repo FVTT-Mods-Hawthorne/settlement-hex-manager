@@ -1,4 +1,4 @@
-# Settlement Tile Manager — v0.2.0 beta
+# Settlement Tile Manager — v0.2.1 beta
 
 A **Foundry VTT v14 beta** for Kingmaker-inspired map tile editing, settlement resources, and leader teams. The module is system-agnostic at its core, but its Actor/Party integration uses document types offered by the active game system. It does **not** require the premium Kingmaker adventure.
 
@@ -10,9 +10,9 @@ Place the extracted `settlement-hex-manager/` directory in your Foundry user-dat
 
 When the GitHub release has actually been published, use this manifest URL in Foundry's Install Module field:
 
-`https://raw.githubusercontent.com/powercore2000/settlement-hex-manager/main/module.json`
+`https://github.com/powercore2000/settlement-hex-manager/releases/download/v0.2.1/module.json`
 
-A release ZIP and matching manifest download URL must both exist for UI installation to work. Merely placing source files in GitHub does not publish an installable release.
+Publish a GitHub release tagged `v0.2.1` containing both `module.json` and `settlement-hex-manager-v0.2.1.zip` as **separate release assets**. The Foundry manifest link above only works once those assets are uploaded. The ZIP contains `module.json` at its root.
 
 ## Key controls
 

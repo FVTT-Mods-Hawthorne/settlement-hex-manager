@@ -2,7 +2,7 @@
   "id": "settlement-hex-manager",
   "title": "Settlement Tile Manager",
   "description": "Beta: click/hover tile viewer, settlement actor-backed management, leaders and teams, GM reveal, and settlement resource HUD.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "authors": [
     {
       "name": "Community prototype"
@@ -25,8 +25,8 @@
       "path": "lang/en.json"
     }
   ],
-  "manifest": "https://raw.githubusercontent.com/powercore2000/settlement-hex-manager/main/module.json",
+  "manifest": "https://github.com/powercore2000/settlement-hex-manager/releases/download/v0.2.1/module.json",
   "license": "MIT",
   "url": "https://github.com/powercore2000/settlement-hex-manager",
-  "download": "https://github.com/powercore2000/settlement-hex-manager/releases/download/v0.2.0/settlement-hex-manager-v0.2.0.zip"
+  "download": "https://github.com/powercore2000/settlement-hex-manager/releases/download/v0.2.1/settlement-hex-manager-v0.2.1.zip"
 }

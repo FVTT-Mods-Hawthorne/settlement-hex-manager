@@ -1,28 +1,72 @@
 name: Publish beta release
+
 on:
   push:
     branches: [main]
   workflow_dispatch:
+
 permissions:
   contents: write
+
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Build Foundry install ZIP
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Validate module manifest and prepare release
+        shell: bash
         run: |
-          mkdir -p dist/settlement-hex-manager
-          cp module.json README.md LICENSE dist/settlement-hex-manager/
-          cp -r scripts styles lang dist/settlement-hex-manager/
-          cd dist
-          zip -qr ../settlement-hex-manager-v0.2.0.zip settlement-hex-manager
-      - name: Publish beta release
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          m = json.loads(Path('module.json').read_text(encoding='utf-8'))
+          version = m['version']
+          tag = f'v{version}'
+          expected_manifest = f'https://github.com/${{ github.repository }}/releases/download/{tag}/module.json'
+          expected_download = f'https://github.com/${{ github.repository }}/releases/download/{tag}/settlement-hex-manager-{tag}.zip'
+          assert m.get('manifest') == expected_manifest, f"Unexpected manifest URL: {m.get('manifest')}"
+          assert m.get('download') == expected_download, f"Unexpected download URL: {m.get('download')}"
+          with open(Path(__import__('os').environ['GITHUB_ENV']), 'a') as f:
+              f.write(f'RELEASE_TAG={tag}\n')
+              f.write(f'RELEASE_ZIP=settlement-hex-manager-{tag}.zip\n')
+          print('Validated release URLs for', tag)
+          PY
+
+      - name: Build installable Foundry ZIP
+        shell: bash
+        run: |
+          zip -q -r "$RELEASE_ZIP" module.json README.md LICENSE scripts styles lang
+          unzip -t "$RELEASE_ZIP"
+          unzip -p "$RELEASE_ZIP" module.json > /tmp/packaged-module.json
+          cmp module.json /tmp/packaged-module.json
+
+      - name: Create beta release if missing
         env:
           GH_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
-          if gh release view v0.2.0 >/dev/null 2>&1; then
-            gh release upload v0.2.0 settlement-hex-manager-v0.2.0.zip --clobber
-          else
-            gh release create v0.2.0 settlement-hex-manager-v0.2.0.zip --title "v0.2.0 beta" --notes "Tile Viewer, Settlement Manager, and Leader Manager beta. Test in a disposable Foundry v14 world." --prerelease --target "$GITHUB_SHA"
+          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" \
+              --title "$RELEASE_TAG beta" \
+              --notes "Foundry VTT beta release. Includes a versioned module.json manifest and installable module ZIP." \
+              --prerelease \
+              --target "$GITHUB_SHA"
           fi
+
+      - name: Upload install ZIP and module.json as separate release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release upload "$RELEASE_TAG" "$RELEASE_ZIP" module.json --clobber
+
+      - name: Verify both release assets were published
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name' | tee /tmp/release-assets.txt
+          grep -Fx 'module.json' /tmp/release-assets.txt
+          grep -Fx "$RELEASE_ZIP" /tmp/release-assets.txt
