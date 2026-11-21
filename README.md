@@ -1,8 +1,8 @@
-# Settlement Tile Manager — v2.1.2 beta
+# Settlement Tile Manager — v2.1.3 beta
 
 A **Foundry VTT v14 beta** for Kingmaker-inspired map tile editing, settlement resources, and leader teams. The module is system-agnostic at its core, but its Actor/Party integration uses document types offered by the active game system. It does **not** require the premium Kingmaker adventure.
 
-> **Beta warning:** The module has not been tested in a running Foundry server. Back up your world before upgrading from v0.1.x. Test with a disposable world and report console errors and your Foundry/PF2e versions. The 9 Node domain tests are not Foundry UI tests.
+> **Beta warning:** The module has not been tested in a running Foundry server. Back up your world before upgrading from v0.1.x. Test with a disposable world and report console errors and your Foundry/PF2e versions. The 10 Node domain tests are not Foundry UI tests.
 
 ## Install
 
@@ -10,15 +10,15 @@ Place the extracted `settlement-hex-manager/` directory in your Foundry user-dat
 
 When the GitHub release has actually been published, use this manifest URL in Foundry's Install Module field:
 
-`https://github.com/powercore2000/settlement-hex-manager/releases/download/v2.1.2/module.json`
+`https://github.com/powercore2000/settlement-hex-manager/releases/download/v2.1.3/module.json`
 
-The `v2.1.2` release contains both `module.json` and `settlement-hex-manager-v2.1.2.zip` as separate release assets. The ZIP contains `module.json` at its root.
+The `v2.1.3` release contains both `module.json` and `settlement-hex-manager-v2.1.3.zip` as separate release assets. The ZIP contains `module.json` at its root.
 
 ## Key controls
 
 **Top HUD:** the v0.1 castle-header resource bar, with the settlement name, turn, collapsible resource values, and the original **Resources** and **Activities** actions. Settlement Manager, Tile Viewer, and Leader Manager remain available from the token scene controls and are not duplicated in the bar.
 
-**Tile Viewer:** Hover a gridded scene tile for a border highlight and a dark semi-transparent summary popup. Tiles without saved data highlight red and show no popup. Left-click the gridded canvas to select the tile and open its detailed viewer. GM can open **Edit Tile Data** for that tile; new tiles open the editor directly. Use **Enable normal click tile viewer** in module settings to disable interception when needed.
+**Tile Viewer:** Toggle **Tile Viewer** in the token scene controls to enable tile interaction. While enabled, explored tiles receive a thin gold outline and the hovered tile receives a stronger outline. Hovering a saved tile opens a compact Kingmaker-style information card beside the pointer. No tile outlines or hover card are rendered while Tile Viewer is disabled. Left-click a tile to open its detailed viewer; GMs can edit existing tile data or create data for an empty tile. Use **Enable normal click tile viewer** in module settings to disable click interception when needed.
 
 **Editor:** Name, tile image selected through Foundry's file browser, region, zone, terrain, travel, security, discovered, status (Unexplored/Mapped), cleared, claimed, owner, commodity, camp, notes, and GM notes. Feature rows select existing **world Items** of type **Landmark Feature** or bearing the legacy `landmark-feature` flag/tag; each row retains its own Revealed checkbox.
 
@@ -34,6 +34,13 @@ The `v2.1.2` release contains both `module.json` and `settlement-hex-manager-v2.
 **Leader Manager:** GM may create and delete team records. A Party Actor is also created when the active system supports the `party` actor type. Team membership is a list of Actor references, and no Actor can belong to more than one team. A team can designate one leader and select an activity. The button **Open Party Sheet** opens the system-native Party sheet where supported. Deleting a team deletes only the team record; Actors and Party Actor are retained. Team members are not registered as actual PF2e party members through system internals in this beta; the record is a non-destructive reference collection.
 
 **Draggable dialogs:** Drag a module window using its dark title bar. Only the module's own dialog is draggable in this beta; it does not alter unrelated Foundry dialogs.
+
+## v2.1.3 changes
+
+- Tile highlighting and tile hover interaction now run only while the Tile Viewer scene-control toggle is active.
+- Explored tiles use a thin gold outline instead of always-visible blue or green outlines.
+- Grid outlines use Foundry's absolute grid vertices and client-to-canvas coordinate conversion, correcting zoom, display scaling, and hex-origin offsets.
+- The hover information card is pointer-anchored, viewport-clamped, and uses a compact Kingmaker-inspired layout with strictly bounded artwork.
 
 ## v2.1.2 changes
 
