@@ -1,4 +1,4 @@
-# Settlement Tile Manager — v0.2.2.1 beta
+# Settlement Tile Manager — v0.2.2.2 beta
 
 A **Foundry VTT v14 beta** for Kingmaker-inspired map tile editing, settlement resources, and leader teams. The module is system-agnostic at its core, but its Actor/Party integration uses document types offered by the active game system. It does **not** require the premium Kingmaker adventure.
 
@@ -10,9 +10,9 @@ Place the extracted `settlement-hex-manager/` directory in your Foundry user-dat
 
 When the GitHub release has actually been published, use this manifest URL in Foundry's Install Module field:
 
-`https://github.com/powercore2000/settlement-hex-manager/releases/download/v0.2.2.1/module.json`
+`https://github.com/powercore2000/settlement-hex-manager/releases/download/v0.2.2.2/module.json`
 
-The `v0.2.2.1` release contains both `module.json` and `settlement-hex-manager-v0.2.2.1.zip` as separate release assets. The ZIP contains `module.json` at its root.
+The `v0.2.2.2` release contains both `module.json` and `settlement-hex-manager-v0.2.2.2.zip` as separate release assets. The ZIP contains `module.json` at its root.
 
 ## Key controls
 
@@ -34,6 +34,14 @@ The `v0.2.2.1` release contains both `module.json` and `settlement-hex-manager-v
 **Leader Manager:** GM may create and delete team records. A Party Actor is also created when the active system supports the `party` actor type. Team membership is a list of Actor references, and no Actor can belong to more than one team. A team can designate one leader and select an activity. The button **Open Party Sheet** opens the system-native Party sheet where supported. Deleting a team deletes only the team record; Actors and Party Actor are retained. Team members are not registered as actual PF2e party members through system internals in this beta; the record is a non-destructive reference collection.
 
 **Draggable dialogs:** Drag a module window using its dark title bar. Only the module's own dialog is draggable in this beta; it does not alter unrelated Foundry dialogs.
+
+## v0.2.2.2 changes
+
+- Tile Viewer and Tile Manager now dock immediately left of Foundry's right-side toolbar and chat/sidebar area.
+- Tile-mode activation accepts both Foundry scene-control callback forms, so hover information appears without requiring a click.
+- Discovered tiles retain a thin passive gold rim only in Tile Viewer mode, while the currently hovered tile uses the configured hover color.
+- The Tile Viewer and Tile Manager title bar remains fixed while the content body scrolls.
+- Landmark Feature is explicitly registered and labeled in Foundry's standard Create Item type menu.
 
 ## v0.2.2.1 changes
 
