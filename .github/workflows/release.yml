@@ -50,7 +50,7 @@ jobs:
           if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             gh release create "$RELEASE_TAG" \
               --title "$RELEASE_TAG beta" \
-              --notes "Settlement Tile Manager v0.2.2.3 beta removes invalid hover popups entirely, centers valid tile information with fixed viewport coordinates, adds confirmed per-tile and all-tile data deletion, and provides opt-in console logging for hover and key interactions. Includes a versioned module.json manifest and installable module ZIP." \
+              --notes "Settlement Tile Manager v0.2.2.4 beta removes the hover information popup entirely, adds green hover outlines for every tile, blue permanent outlines for discovered unclaimed tiles, gold permanent outlines for claimed tiles, and keeps the Tile Manager header fixed while its body scrolls. Includes a versioned module.json manifest and installable module ZIP." \
               --prerelease \
               --target "$GITHUB_SHA"
           fi

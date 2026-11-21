@@ -1,4 +1,4 @@
-# Settlement Tile Manager — v0.2.2.3 beta
+# Settlement Tile Manager — v0.2.2.4 beta
 
 A **Foundry VTT v14 beta** for Kingmaker-inspired map tile editing, settlement resources, and leader teams. The module is system-agnostic at its core, but its Actor/Party integration uses document types offered by the active game system. It does **not** require the premium Kingmaker adventure.
 
@@ -10,15 +10,15 @@ Place the extracted `settlement-hex-manager/` directory in your Foundry user-dat
 
 When the GitHub release has actually been published, use this manifest URL in Foundry's Install Module field:
 
-`https://github.com/powercore2000/settlement-hex-manager/releases/download/v0.2.2.3/module.json`
+`https://github.com/powercore2000/settlement-hex-manager/releases/download/v0.2.2.4/module.json`
 
-The `v0.2.2.3` release contains both `module.json` and `settlement-hex-manager-v0.2.2.3.zip` as separate release assets. The ZIP contains `module.json` at its root.
+The `v0.2.2.4` release contains both `module.json` and `settlement-hex-manager-v0.2.2.4.zip` as separate release assets. The ZIP contains `module.json` at its root.
 
 ## Key controls
 
 **Top HUD:** the v0.1 castle-header resource bar, with the settlement name, turn, collapsible resource values, and the original **Resources** and **Activities** actions. Settlement Manager, Tile Viewer, and Leader Manager remain available from the token scene controls and are not duplicated in the bar.
 
-**Tile Viewer:** Toggle **Tile Viewer** in the token scene controls to enable tile interaction. While enabled, explored tiles receive a thin gold outline and the hovered tile receives a stronger outline. Hovering a saved tile opens a compact Kingmaker-style information card beside the pointer. No tile outlines or hover card are rendered while Tile Viewer is disabled. Left-click a tile to open its detailed viewer; GMs can edit existing tile data or create data for an empty tile. Use **Enable normal click tile viewer** in module settings to disable click interception when needed.
+**Tile Viewer:** Toggle **Tile Viewer** in the token scene controls to enable tile interaction. While enabled, every hovered tile receives a green outline whether or not it has saved data. Discovered but unclaimed tiles retain a blue outline, and claimed tiles retain a gold outline. Blue and gold are mutually exclusive; the green hover overlay can appear with either. No popup or information card is created on hover, and no tile effects are rendered while Tile Viewer is disabled. Left-click a tile to open its detailed viewer; GMs can edit existing tile data or create data for an empty tile. Use **Enable normal click tile viewer** in module settings to disable click interception when needed.
 
 **Editor:** Name, tile image selected through Foundry's file browser, region, zone, terrain, travel, security, discovered, status (Unexplored/Mapped), cleared, claimed, owner, commodity, camp, notes, and GM notes. Feature rows select existing **world Items** of type **Landmark Feature** or bearing the legacy `landmark-feature` flag/tag; each row retains its own Revealed checkbox.
 
@@ -34,6 +34,14 @@ The `v0.2.2.3` release contains both `module.json` and `settlement-hex-manager-v
 **Leader Manager:** GM may create and delete team records. A Party Actor is also created when the active system supports the `party` actor type. Team membership is a list of Actor references, and no Actor can belong to more than one team. A team can designate one leader and select an activity. The button **Open Party Sheet** opens the system-native Party sheet where supported. Deleting a team deletes only the team record; Actors and Party Actor are retained. Team members are not registered as actual PF2e party members through system internals in this beta; the record is a non-destructive reference collection.
 
 **Draggable dialogs:** Drag a module window using its dark title bar. Only the module's own dialog is draggable in this beta; it does not alter unrelated Foundry dialogs.
+
+## v0.2.2.4 changes
+
+- Removes the on-hover popup and all of its DOM, positioning, visibility, and sidebar-boundary logic.
+- Hovering any tile in Tile Viewer mode draws a green outline regardless of saved data.
+- Discovered, unclaimed tiles have a permanent blue outline; claimed tiles have a permanent gold outline.
+- Blue and gold are mutually exclusive, while the green hover outline can layer with either permanent state.
+- Tile Manager uses a fixed-height window with a non-scrolling header and an independently scrolling content body.
 
 ## v0.2.2.3 changes
 
@@ -95,7 +103,7 @@ The `v0.2.2.3` release contains both `module.json` and `settlement-hex-manager-v
 
 ```mermaid
 flowchart TD
-  C[Scene Grid] --> V[Tile Viewer / Hover UI]
+  C[Scene Grid] --> V[Tile Viewer / Outline Overlay]
   V --> H[Selected tile record]
   H --> E[GM Tile Editor]
   E --> P[Authoritative GM Store]
