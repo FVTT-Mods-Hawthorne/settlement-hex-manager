@@ -1,0 +1,28 @@
+name: Publish beta release
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Foundry install ZIP
+        run: |
+          mkdir -p dist/settlement-hex-manager
+          cp module.json README.md LICENSE dist/settlement-hex-manager/
+          cp -r scripts styles lang dist/settlement-hex-manager/
+          cd dist
+          zip -qr ../settlement-hex-manager-v0.2.0.zip settlement-hex-manager
+      - name: Publish beta release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view v0.2.0 >/dev/null 2>&1; then
+            gh release upload v0.2.0 settlement-hex-manager-v0.2.0.zip --clobber
+          else
+            gh release create v0.2.0 settlement-hex-manager-v0.2.0.zip --title "v0.2.0 beta" --notes "Tile Viewer, Settlement Manager, and Leader Manager beta. Test in a disposable Foundry v14 world." --prerelease --target "$GITHUB_SHA"
+          fi
