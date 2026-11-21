@@ -1,4 +1,4 @@
-# Settlement Tile Manager — v0.2.1.1 beta
+# Settlement Tile Manager — v2.1.2 beta
 
 A **Foundry VTT v14 beta** for Kingmaker-inspired map tile editing, settlement resources, and leader teams. The module is system-agnostic at its core, but its Actor/Party integration uses document types offered by the active game system. It does **not** require the premium Kingmaker adventure.
 
@@ -10,13 +10,13 @@ Place the extracted `settlement-hex-manager/` directory in your Foundry user-dat
 
 When the GitHub release has actually been published, use this manifest URL in Foundry's Install Module field:
 
-`https://github.com/powercore2000/settlement-hex-manager/releases/download/v0.2.1.1/module.json`
+`https://github.com/powercore2000/settlement-hex-manager/releases/download/v2.1.2/module.json`
 
-The `v0.2.1.1` release contains both `module.json` and `settlement-hex-manager-v0.2.1.1.zip` as separate release assets. The ZIP contains `module.json` at its root.
+The `v2.1.2` release contains both `module.json` and `settlement-hex-manager-v2.1.2.zip` as separate release assets. The ZIP contains `module.json` at its root.
 
 ## Key controls
 
-**Top HUD:** a compact turn and settlement-resource display. Manager actions remain available from the token scene controls without duplicating three large buttons in the HUD.
+**Top HUD:** the v0.1 castle-header resource bar, with the settlement name, turn, collapsible resource values, and the original **Resources** and **Activities** actions. Settlement Manager, Tile Viewer, and Leader Manager remain available from the token scene controls and are not duplicated in the bar.
 
 **Tile Viewer:** Hover a gridded scene tile for a border highlight and a dark semi-transparent summary popup. Tiles without saved data highlight red and show no popup. Left-click the gridded canvas to select the tile and open its detailed viewer. GM can open **Edit Tile Data** for that tile; new tiles open the editor directly. Use **Enable normal click tile viewer** in module settings to disable interception when needed.
 
@@ -34,6 +34,12 @@ The `v0.2.1.1` release contains both `module.json` and `settlement-hex-manager-v
 **Leader Manager:** GM may create and delete team records. A Party Actor is also created when the active system supports the `party` actor type. Team membership is a list of Actor references, and no Actor can belong to more than one team. A team can designate one leader and select an activity. The button **Open Party Sheet** opens the system-native Party sheet where supported. Deleting a team deletes only the team record; Actors and Party Actor are retained. Team members are not registered as actual PF2e party members through system internals in this beta; the record is a non-destructive reference collection.
 
 **Draggable dialogs:** Drag a module window using its dark title bar. Only the module's own dialog is draggable in this beta; it does not alter unrelated Foundry dialogs.
+
+## v2.1.2 changes
+
+- Restores the resource bar layout and interaction design shipped in v0.1.
+- Keeps the original Resources and Activities actions in the resource bar.
+- Removes Settlement Manager, Tile Viewer, and Leader Manager buttons from the resource bar; those managers remain available from scene controls.
 
 ## v0.2.1.1 fixes
 
@@ -106,4 +112,5 @@ flowchart LR
 ## Licensing
 
 MIT for this original beta implementation. No proprietary Kingmaker assets or module code included.
+
 
