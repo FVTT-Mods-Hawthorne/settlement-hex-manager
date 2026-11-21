@@ -1,1 +1,18 @@
-{"SHM":{"Title":"Settlement Hex Manager","HUD":"Settlement Resources","Hex":"Hex","Editor":"Edit Hex","Turn":"Advance Turn"}}
+{
+  "SHM": {
+    "Title": "Settlement Hex Manager",
+    "HUD": "Settlement Resources",
+    "Hex": "Hex",
+    "Editor": "Edit Hex",
+    "Turn": "Advance Turn"
+  },
+  "TYPES": {
+    "Actor": {
+      "settlement": "Settlement"
+    },
+    "Item": {
+      "landmarkFeature": "Landmark Feature"
+    }
+  }
+}
+

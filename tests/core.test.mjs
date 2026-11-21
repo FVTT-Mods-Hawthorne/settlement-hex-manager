@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {blankState,blankMap,blankHex,validateHex,publicHex,exploredLabel,production,applyCosts,addResources,applyEffect,nextTurn,validateActivity,DEFAULT_ACTIVITIES} from '../scripts/core.mjs';
+import {blankState,blankMap,blankHex,validateHex,publicHex,exploredLabel,production,applyCosts,addResources,applyEffect,nextTurn,validateActivity,normalizeDocumentTypes,DEFAULT_ACTIVITIES} from '../scripts/core.mjs';
+test('document type collections normalize arrays, sets, and keyed objects',()=>{assert.deepEqual(normalizeDocumentTypes(['party']),['party']);assert.deepEqual(normalizeDocumentTypes(new Set(['party'])),['party']);assert.deepEqual(normalizeDocumentTypes({party:{}}),['party']);assert.deepEqual(normalizeDocumentTypes(null),[]);});
 test('tile validation supports item-linked features and thumbnail',()=>{const h=validateHex({...blankHex('2,3'),thumbnail:'tile.png',discovered:true,status:'mapped',features:[{itemUuid:'Item.123',revealed:true}]});assert.equal(h.thumbnail,'tile.png');assert.equal(h.features[0].itemUuid,'Item.123');});
 test('old reconnoitered value migrates to mapped',()=>assert.equal(validateHex({...blankHex('0,0'),status:'reconnoitered'}).status,'mapped'));
 test('computed explored label handles hidden feature',()=>{const base={...blankHex('0,0'),discovered:true,status:'mapped'};assert.equal(exploredLabel(base),'Fully Explored');assert.equal(exploredLabel({...base,features:[{revealed:false}]}),'Partially Mapped');assert.equal(exploredLabel({...base,status:'unexplored'}),'Unexplored');});
@@ -10,3 +11,4 @@ test('costs and adjustments reject invalid expenditure',()=>{assert.deepEqual(ap
 test('construction requirements validate ownership and commodity',()=>{const h={...blankHex('0,0'),discovered:true,claimed:true,owner:'main',commodity:'food',status:'mapped'};assert.equal(validateActivity(DEFAULT_ACTIVITIES.find(a=>a.id==='farm'),h,'main'),true);assert.throws(()=>validateActivity(DEFAULT_ACTIVITIES.find(a=>a.id==='mine'),h,'main'));});
 test('turn applies rations population upkeep and prevents double reward',()=>{const s=blankState(),m=blankMap();s.settlements.main.population=2;m.hexes['0,0']={...blankHex('0,0'),discovered:true,claimed:true,owner:'main',commodity:'food',camp:'farm'};const r=nextTurn(s,m,'main','abc');assert.equal(r.state.settlements.main.balances.rations,1);assert.equal(nextTurn(r.state,r.map,'main','abc').duplicate,true);});
 test('activity effect claims, maps, and adds structure',()=>{const h={...blankHex('0,0'),discovered:true,status:'mapped'};assert.equal(applyEffect(h,{effect:'claim',settlementId:'main'}).owner,'main');assert.equal(applyEffect(h,{effect:'watchtower'}).features.length,1);});
+

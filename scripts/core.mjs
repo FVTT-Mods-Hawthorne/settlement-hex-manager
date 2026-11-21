@@ -7,6 +7,12 @@ export const YIELDS = {farm:{rations:3},mine:{resources:2},"lumber-camp":{materi
 export const uid = () => globalThis.crypto?.randomUUID?.() || `id-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 export const clampInt = (value, min=0, max=999999999) => Math.max(min, Math.min(max, Math.trunc(Number(value)||0)));
 export const keyOf = (row,col) => `${Math.trunc(row)},${Math.trunc(col)}`;
+export const normalizeDocumentTypes = value => {
+  if(Array.isArray(value))return value.map(String);
+  if(value instanceof Set)return [...value].map(String);
+  if(value&&typeof value==='object')return Object.keys(value);
+  return [];
+};
 export const blankHex = (key) => ({id:key, name:"",region:"",zone:"",terrain:"",travelType:"", discovered:false, status:"unexplored", thumbnail:"",security:0,cleared:false,claimed:false,owner:"",commodity:"none",camp:"none",notes:"",gmNotes:"",features:[]});
 export const blankState = () => ({schema:1,revision:0,turn:0,settlements:{main:{id:"main",name:"Main Settlement",balances:Object.fromEntries(RESOURCE_IDS.map(r=>[r,0])),capacity:{},upkeep:{},actorId:"",homeSceneId:"",homeHexId:"",security:20,morale:0,population:0,maxPopulation:20,features:{structure:[],crafting:[],society:[],research:[],misc:[]}}},activities:[],ledger:[],processed:[],teams:[]});
 export const blankMap = () => ({schema:1,revision:0,enabled:false,hexes:{}});
@@ -122,3 +128,4 @@ export function nextTurn(state,map,settlementId="main",requestId=uid()){
   s.ledger=s.ledger.slice(0,150);
   return {state:s,map:m,summary:{income,costs:actualCosts,completed}};
 }
+
