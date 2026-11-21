@@ -1,4 +1,4 @@
-# Settlement Tile Manager — v0.2.2.2 beta
+# Settlement Tile Manager — v0.2.2.3 beta
 
 A **Foundry VTT v14 beta** for Kingmaker-inspired map tile editing, settlement resources, and leader teams. The module is system-agnostic at its core, but its Actor/Party integration uses document types offered by the active game system. It does **not** require the premium Kingmaker adventure.
 
@@ -10,9 +10,9 @@ Place the extracted `settlement-hex-manager/` directory in your Foundry user-dat
 
 When the GitHub release has actually been published, use this manifest URL in Foundry's Install Module field:
 
-`https://github.com/powercore2000/settlement-hex-manager/releases/download/v0.2.2.2/module.json`
+`https://github.com/powercore2000/settlement-hex-manager/releases/download/v0.2.2.3/module.json`
 
-The `v0.2.2.2` release contains both `module.json` and `settlement-hex-manager-v0.2.2.2.zip` as separate release assets. The ZIP contains `module.json` at its root.
+The `v0.2.2.3` release contains both `module.json` and `settlement-hex-manager-v0.2.2.3.zip` as separate release assets. The ZIP contains `module.json` at its root.
 
 ## Key controls
 
@@ -34,6 +34,14 @@ The `v0.2.2.2` release contains both `module.json` and `settlement-hex-manager-v
 **Leader Manager:** GM may create and delete team records. A Party Actor is also created when the active system supports the `party` actor type. Team membership is a list of Actor references, and no Actor can belong to more than one team. A team can designate one leader and select an activity. The button **Open Party Sheet** opens the system-native Party sheet where supported. Deleting a team deletes only the team record; Actors and Party Actor are retained. Team members are not registered as actual PF2e party members through system internals in this beta; the record is a non-destructive reference collection.
 
 **Draggable dialogs:** Drag a module window using its dark title bar. Only the module's own dialog is draggable in this beta; it does not alter unrelated Foundry dialogs.
+
+## v0.2.2.3 changes
+
+- Hover information is removed from the document whenever its visibility conditions fail, preventing invisible popups from affecting Foundry's UI.
+- Valid hover information is centered using fixed viewport pixel coordinates without sidebar or edge-boundary calculations.
+- Tile Manager can permanently delete the selected tile's module-owned data after confirmation.
+- Module settings include a confirmed GM-only action to delete every tile record owned by this module without touching Actors, Items, scenes, or other modules.
+- Optional debug console logging covers hover conditions, popup lifecycle, tile clicks, modal activity, canvas binding, and data actions.
 
 ## v0.2.2.2 changes
 
