@@ -1,8 +1,8 @@
-# Settlement Tile Manager — v0.2.2.4 beta
+# Settlement Tile Manager — v0.2.2.5 beta
 
 A **Foundry VTT v14 beta** for Kingmaker-inspired map tile editing, settlement resources, and leader teams. The module is system-agnostic at its core, but its Actor/Party integration uses document types offered by the active game system. It does **not** require the premium Kingmaker adventure.
 
-> **Beta warning:** The module has not been tested in a running Foundry server. Back up your world before upgrading from v0.1.x. Test with a disposable world and report console errors and your Foundry/PF2e versions. The 10 Node domain tests are not Foundry UI tests.
+> **Beta warning:** The module has not been tested in a running Foundry server. Back up your world before upgrading from v0.1.x. Test with a disposable world and report console errors and your Foundry/PF2e versions. The Node domain tests are not Foundry UI tests.
 
 ## Install
 
@@ -10,30 +10,37 @@ Place the extracted `settlement-hex-manager/` directory in your Foundry user-dat
 
 When the GitHub release has actually been published, use this manifest URL in Foundry's Install Module field:
 
-`https://github.com/powercore2000/settlement-hex-manager/releases/download/v0.2.2.4/module.json`
+`https://github.com/powercore2000/settlement-hex-manager/releases/download/v0.2.2.5/module.json`
 
-The `v0.2.2.4` release contains both `module.json` and `settlement-hex-manager-v0.2.2.4.zip` as separate release assets. The ZIP contains `module.json` at its root.
+The `v0.2.2.5` release contains both `module.json` and `settlement-hex-manager-v0.2.2.5.zip` as separate release assets. The ZIP contains `module.json` at its root.
 
 ## Key controls
 
-**Top HUD:** the v0.1 castle-header resource bar, with the settlement name, turn, collapsible resource values, and the original **Resources** and **Activities** actions. Settlement Manager, Tile Viewer, and Leader Manager remain available from the token scene controls and are not duplicated in the bar.
+**Top HUD:** the v0.1 castle-header resource bar, with the settlement name, current settlement phase, collapsible resource values, and the original **Resources** and **Activities** actions. Settlement Manager, Tile Viewer, and Leader Manager remain available from the token scene controls and are not duplicated in the bar.
 
 **Tile Viewer:** Toggle **Tile Viewer** in the token scene controls to enable tile interaction. While enabled, every hovered tile receives a green outline whether or not it has saved data. Discovered but unclaimed tiles retain a blue outline, and claimed tiles retain a gold outline. Blue and gold are mutually exclusive; the green hover overlay can appear with either. No popup or information card is created on hover, and no tile effects are rendered while Tile Viewer is disabled. Left-click a tile to open its detailed viewer; GMs can edit existing tile data or create data for an empty tile. Use **Enable normal click tile viewer** in module settings to disable click interception when needed.
 
-**Editor:** Name, tile image selected through Foundry's file browser, region, zone, terrain, travel, security, discovered, status (Unexplored/Mapped), cleared, claimed, owner, commodity, camp, notes, and GM notes. Feature rows select existing **world Items** of type **Landmark Feature** or bearing the legacy `landmark-feature` flag/tag; each row retains its own Revealed checkbox.
-
-**Landmark Feature tagging:** In a Foundry macro or dev console, run `await game.items.get('ITEM_ID').setFlag('settlement-hex-manager','landmark-feature',true)` for an existing world Item. Item images, names, and descriptions are pulled from the item. Compendium-only items should first be imported to world Items. Existing unlinked feature data from v0.1 may remain in storage but cannot be reselected until converted into tagged Items.
+**Editor:** Name, tile image selected through Foundry's file browser, region, zone, terrain, travel, security, discovered, status (Unexplored/Mapped), cleared, claimed, owner, commodity, camp, Player Notes, Player Camping Notes, and GM Notes. Notes and landmark descriptions use Foundry's native ProseMirror editor with its formatting toolbar. Landmark rows store a name, file-browser image, rich-text description, and Visible to Players checkbox directly in tile data.
 
 **Explored label** is derived, not manually edited:
 - **Unexplored** when undiscovered or status is Unexplored.
 - **Partially Mapped** when mapped and at least one feature exists but is hidden.
 - **Fully Explored** when mapped and zero features exist or all features are revealed.
 
-**Settlement Manager:** Create a settlement with the selected tile as its required home. Foundry v14 registers the module-owned **Settlement** Actor type and new settlements use it. A settlement summary is added to its sheet. The authoritative settlement data is managed in the module store, not by overwriting system HP fields. Security starts at 20, Morale at 0, population at 0, and resources at 0. Current Pop and Max Pop are separate module fields. Settlement resource types are Rations, Materials, Resources, Supplies, and Uniques. Every advance turn consumes Rations up to the supported population; it never drives inventory negative.
+**Settlement Manager:** Create a settlement with the selected tile as its required home. Foundry v14 registers the module-owned **Settlement** Actor type and new settlements use it. A settlement summary is added to its sheet. The visible workflow cycles through **Upkeep → Assignment → Activity Resolution → Week End**. Completing Week End returns to Upkeep and performs the existing weekly resource/activity resolution. The internal week number remains only for calculations and ledgers. Security starts at 20, Morale at 0, population at 0, and resources at 0.
 
-**Leader Manager:** GM may create and delete team records. A Party Actor is also created when the active system supports the `party` actor type. Team membership is a list of Actor references, and no Actor can belong to more than one team. A team can designate one leader and select an activity. The button **Open Party Sheet** opens the system-native Party sheet where supported. Deleting a team deletes only the team record; Actors and Party Actor are retained. Team members are not registered as actual PF2e party members through system internals in this beta; the record is a non-destructive reference collection.
+**Leader Manager:** Creating a team creates an Actor entry in an **Other Parties** Actor folder, creating that folder when necessary. Party Actor type is preferred when supported. Membership is managed through the Actor/Party sheet rather than a duplicate Members field in Leader Manager. The manager retains activity selection, Open Party Sheet, and non-destructive team-record deletion.
 
 **Draggable dialogs:** Drag a module window using its dark title bar. Only the module's own dialog is draggable in this beta; it does not alter unrelated Foundry dialogs.
+
+## v0.2.2.5 changes
+
+- Players receive Tile Viewer hover and persistent outlines from their filtered tile snapshot.
+- Clicking a discovered tile opens the player-safe Tile Viewer without GM Notes, hidden landmarks, Edit Tile Data, or reveal controls.
+- Landmark features are standalone name, file-browser image, rich-text description, and player-visibility fields.
+- Player Notes, Player Camping Notes, GM Notes, and landmark descriptions use Foundry v14's native ProseMirror editor toolbar.
+- Replaces the visible turn counter with Upkeep, Assignment, Activity Resolution, and Week End phases; GMs advance them in order.
+- New teams create Actor entries under an Other Parties folder, and Leader Manager no longer duplicates the Members selector.
 
 ## v0.2.2.4 changes
 
@@ -108,12 +115,12 @@ flowchart TD
   H --> E[GM Tile Editor]
   E --> P[Authoritative GM Store]
   H --> S[Settlement Home Tile]
-  S --> R[Resource & Turn Service]
+  S --> R[Resource & Phase Service]
   R --> HUD[Top Resource HUD]
   P --> M[Filtered Client Snapshot]
   M --> V
-  T[Leader Manager] --> A[Team Actor References]
-  A --> PA[Optional Native Party Actor]
+  T[Leader Manager] --> A[Other Parties Actor Folder]
+  A --> PA[Native Party Actor when supported]
 ```
 
 ```mermaid
@@ -127,9 +134,9 @@ flowchart LR
 ## Implementation boundaries and known limitations
 
 1. **Actor types:** Foundry v14 namespaces module-defined subtypes, so the visible **Settlement** type is stored as `settlement-hex-manager.settlement`. The module does not modify PF2e's own Actor schemas or native HP fields.
-2. **Party membership:** Team reference collections avoid mutating character sheet membership. An optional Party Actor may be created, but adding characters to its native PF2e party membership is not yet integrated.
+2. **Party membership:** Leader Manager creates an Actor in the Other Parties folder and delegates membership to the system-native Actor/Party sheet.
 3. **Movement and tokens:** Native Actor tokens may be placed through Foundry. Automatic synchronization of tile home tokens and one token for each team is not yet implemented.
-4. **Item catalog:** The dynamic selector currently indexes **Landmark Feature** and legacy-tagged *world Items*. Compendium selection is not yet supported.
+4. **Landmark data:** Tile landmarks are stored directly in module tile data. Existing legacy Item UUID references are ignored after migration unless their copied name, image, or description is already present.
 5. **Hover and click interception:** The browser canvas API is version-sensitive; test in a v14 world. Disable normal click selection in settings if it conflicts with another canvas tool.
 6. **Persistence:** Private world data lives in a GM-only JournalEntryPage. Client snapshots filter undiscovered tiles and hidden features. A GM must be connected to accept edits.
 7. **Migration:** Old resource balances are not automatically converted into the new resource taxonomy. Export or record previous resource totals before upgrading.
