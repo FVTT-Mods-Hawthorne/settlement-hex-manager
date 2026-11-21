@@ -1,4 +1,4 @@
-# Settlement Tile Manager — v2.1.3 beta
+# Settlement Tile Manager — v0.2.2.1 beta
 
 A **Foundry VTT v14 beta** for Kingmaker-inspired map tile editing, settlement resources, and leader teams. The module is system-agnostic at its core, but its Actor/Party integration uses document types offered by the active game system. It does **not** require the premium Kingmaker adventure.
 
@@ -10,9 +10,9 @@ Place the extracted `settlement-hex-manager/` directory in your Foundry user-dat
 
 When the GitHub release has actually been published, use this manifest URL in Foundry's Install Module field:
 
-`https://github.com/powercore2000/settlement-hex-manager/releases/download/v2.1.3/module.json`
+`https://github.com/powercore2000/settlement-hex-manager/releases/download/v0.2.2.1/module.json`
 
-The `v2.1.3` release contains both `module.json` and `settlement-hex-manager-v2.1.3.zip` as separate release assets. The ZIP contains `module.json` at its root.
+The `v0.2.2.1` release contains both `module.json` and `settlement-hex-manager-v0.2.2.1.zip` as separate release assets. The ZIP contains `module.json` at its root.
 
 ## Key controls
 
@@ -35,7 +35,7 @@ The `v2.1.3` release contains both `module.json` and `settlement-hex-manager-v2.
 
 **Draggable dialogs:** Drag a module window using its dark title bar. Only the module's own dialog is draggable in this beta; it does not alter unrelated Foundry dialogs.
 
-## v2.1.3 changes
+## v0.2.2.1 changes
 
 - Tile highlighting and tile hover interaction now run only while the Tile Viewer scene-control toggle is active.
 - Explored tiles use a thin gold outline instead of always-visible blue or green outlines.

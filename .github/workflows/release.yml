@@ -50,7 +50,7 @@ jobs:
           if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             gh release create "$RELEASE_TAG" \
               --title "$RELEASE_TAG beta" \
-              --notes "Settlement Tile Manager v2.1.3 beta makes tile highlighting exclusive to Tile Viewer mode, corrects hex outline coordinates, adds thin gold explored-tile outlines, and replaces the broken hover display with a bounded pointer-anchored Kingmaker-inspired information card. Includes a versioned module.json manifest and installable module ZIP." \
+              --notes "Settlement Tile Manager v0.2.2.1 beta makes tile highlighting exclusive to Tile Viewer mode, corrects hex outline coordinates, adds thin gold explored-tile outlines, and replaces the broken hover display with a bounded pointer-anchored Kingmaker-inspired information card. Includes a versioned module.json manifest and installable module ZIP." \
               --prerelease \
               --target "$GITHUB_SHA"
           fi
