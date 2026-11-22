@@ -1,4 +1,4 @@
-# Settlement Tile Manager — v0.2.2.6 beta
+# Settlement Tile Manager — v0.2.2.7 beta
 
 A **Foundry VTT v14 beta** for Kingmaker-inspired map tile editing, settlement resources, and leader teams. The module is system-agnostic at its core, but its Actor/Party integration uses document types offered by the active game system. It does **not** require the premium Kingmaker adventure.
 
@@ -10,9 +10,9 @@ Place the extracted `settlement-hex-manager/` directory in your Foundry user-dat
 
 When the GitHub release has actually been published, use this manifest URL in Foundry's Install Module field:
 
-`https://github.com/powercore2000/settlement-hex-manager/releases/download/v0.2.2.6/module.json`
+`https://github.com/powercore2000/settlement-hex-manager/releases/download/v0.2.2.7/module.json`
 
-The `v0.2.2.6` release contains both `module.json` and `settlement-hex-manager-v0.2.2.6.zip` as separate release assets. The ZIP contains `module.json` at its root.
+The `v0.2.2.7` release contains both `module.json` and `settlement-hex-manager-v0.2.2.7.zip` as separate release assets. The ZIP contains `module.json` at its root.
 
 ## Key controls
 
@@ -20,7 +20,9 @@ The `v0.2.2.6` release contains both `module.json` and `settlement-hex-manager-v
 
 **Tile Viewer:** Toggle **Tile Viewer** in the token scene controls to enable tile interaction. While enabled, every hovered tile receives a green outline whether or not it has saved data. Discovered but unclaimed tiles retain a blue outline, and claimed tiles retain a gold outline. Blue and gold are mutually exclusive; the green hover overlay can appear with either. No popup or information card is created on hover, and no tile effects are rendered while Tile Viewer is disabled. Left-click a tile to open its detailed viewer; GMs can edit existing tile data or create data for an empty tile. Use **Enable normal click tile viewer** in module settings to disable click interception when needed.
 
-**Editor:** Name, tile image selected through Foundry's file browser, region, zone, terrain, travel, security, discovered, status (Unexplored/Mapped), cleared, claimed, owner, commodity, camp, Player Notes, and GM Notes. Player Notes and GM Notes use normal text areas. Landmark descriptions retain Foundry's native rich-text editor and formatting toolbar. Landmark rows store a name, file-browser image, description, and Visible to Players checkbox directly in tile data.
+**Editor:** Name, tile image selected through Foundry's file browser, region, zone, terrain dropdown, optional hills overlay, base Difficulty, Path bonus, terrain tags, security, discovered, status, cleared, claimed, owner, Player Notes, and GM Notes. Terrain tags are Lifted, Crystal Growth, Crystal Waters, and Coastal. Travel DC is Difficulty minus the Fully Explored adjustment and Path bonus; Explore and Forage DCs use Difficulty minus the Fully Explored adjustment. Fully Explored contributes −2.
+
+**Discoverables and Points of Interest:** Commodity and camp controls are replaced by any number of discoverables. Each has a name, category, tier 1–4, modifier, found/hidden state, and improvement slots equal to its tier. Only found discoverables enter player Scene data. Landmarks remain separate Points of Interest with name, file-browser image, rich-text description, and player visibility.
 
 **Explored label** is derived, not manually edited:
 - **Unexplored** when undiscovered or status is Unexplored.
@@ -32,6 +34,16 @@ The `v0.2.2.6` release contains both `module.json` and `settlement-hex-manager-v
 **Leader Manager:** Creating a team creates an Actor entry in an **Other Parties** Actor folder, creating that folder when necessary. Party Actor type is preferred when supported. Membership is managed through the Actor/Party sheet rather than a duplicate Members field in Leader Manager. The manager retains activity selection, Open Party Sheet, and non-destructive team-record deletion.
 
 **Draggable dialogs:** Drag a module window using its dark title bar. Only the module's own dialog is draggable in this beta; it does not alter unrelated Foundry dialogs.
+
+## v0.2.2.7 changes
+
+- Every GM now reads the same module-owned journal directly instead of making non-host GMs depend on a player-style socket snapshot.
+- Non-host GMs reload the shared journal whenever the host broadcasts a module data change.
+- Adds terrain dropdowns, hills overlay, Difficulty, Path bonus, and Lifted/Crystal Growth/Crystal Waters/Coastal tags.
+- Tile Viewer calculates and displays Travel, Explore, and Forage DCs, including −2 for Fully Explored and the Travel Path bonus.
+- Replaces commodity and camp controls with tiered discoverables and tier-limited improvement slots.
+- Player Scene flags contain only found discoverables; hidden discoverables and GM notes stay private.
+- Renames landmark presentation to Points of Interest while keeping its images and rich descriptions.
 
 ## v0.2.2.6 changes
 
