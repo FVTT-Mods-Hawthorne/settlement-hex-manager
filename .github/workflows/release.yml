@@ -37,7 +37,7 @@ jobs:
       - name: Build installable Foundry ZIP
         shell: bash
         run: |
-          zip -q -r "$RELEASE_ZIP" module.json README.md LICENSE scripts styles lang
+          zip -q -r "$RELEASE_ZIP" module.json README.md HANDOFF.md LICENSE scripts styles lang
           unzip -t "$RELEASE_ZIP"
           unzip -p "$RELEASE_ZIP" module.json > /tmp/packaged-module.json
           cmp module.json /tmp/packaged-module.json
@@ -50,7 +50,7 @@ jobs:
           if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             gh release create "$RELEASE_TAG" \
               --title "$RELEASE_TAG beta" \
-              --notes "Settlement Tile Manager v0.2.2.7 beta fixes shared tile access across GM accounts, adds terrain metadata and computed Travel/Explore/Forage DCs, replaces commodity and camp with tiered discoverables, and keeps landmarks as Points of Interest. Includes a versioned module.json manifest and installable module ZIP." \
+              --notes "Settlement Tile Manager v0.2.2.8 beta removes settlement management, resources, phases, leaders, teams, activities, and Actor integration so the module is focused solely on Scene tile exploration. It also adds a detailed HANDOFF.md for maintainers. Includes a versioned module.json manifest and installable module ZIP." \
               --prerelease \
               --target "$GITHUB_SHA"
           fi
@@ -70,5 +70,4 @@ jobs:
           gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name' | tee /tmp/release-assets.txt
           grep -Fx 'module.json' /tmp/release-assets.txt
           grep -Fx "$RELEASE_ZIP" /tmp/release-assets.txt
-
 

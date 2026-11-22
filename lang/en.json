@@ -1,18 +1,12 @@
 {
   "SHM": {
-    "Title": "Settlement Hex Manager",
-    "HUD": "Settlement Resources",
-    "Hex": "Hex",
-    "Editor": "Edit Hex",
-    "Turn": "Advance Turn"
+    "Title": "Settlement Tile Manager",
+    "Hex": "Tile",
+    "Editor": "Edit Tile"
   },
   "TYPES": {
-    "Actor": {
-      "settlement": "Settlement"
-    },
     "Item": {
       "landmarkFeature": "Landmark Feature"
     }
   }
 }
-
