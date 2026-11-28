@@ -24,7 +24,7 @@ jobs:
           m = json.loads(Path('module.json').read_text(encoding='utf-8'))
           version = m['version']
           tag = f'v{version}'
-          expected_manifest = f'https://github.com/${{ github.repository }}/releases/download/{tag}/module.json'
+          expected_manifest = f'https://raw.githubusercontent.com/${{ github.repository }}/main/module.json'
           expected_download = f'https://github.com/${{ github.repository }}/releases/download/{tag}/settlement-tile-manager-{tag}.zip'
           assert m.get('manifest') == expected_manifest, f"Unexpected manifest URL: {m.get('manifest')}"
           assert m.get('download') == expected_download, f"Unexpected download URL: {m.get('download')}"
@@ -50,7 +50,7 @@ jobs:
           if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             gh release create "$RELEASE_TAG" \
               --title "$RELEASE_TAG beta" \
-              --notes "Settlement Tile Manager v0.2.2.10 beta adds exact per-tile Travel, Explore, and Forage DC overrides through Settlement Core 0.3.1, Pathfinder-style Core tag entry, and plain Point of Interest descriptions. The release archive now uses the settlement-tile-manager name. Includes module.json and an installable ZIP." \
+              --notes "Settlement Tile Manager v0.2.2.11 moves automatic updates to a permanent main-branch manifest URL and requires Settlement Core 0.3.2. It retains tile DC overrides, Pathfinder-style Core tag entry, and plain Point of Interest descriptions. Includes module.json and an installable ZIP." \
               --prerelease \
               --target "$GITHUB_SHA"
           fi
@@ -61,6 +61,18 @@ jobs:
         shell: bash
         run: |
           gh release upload "$RELEASE_TAG" "$RELEASE_ZIP" module.json --clobber
+
+      - name: Bridge older installed manifests to the stable update channel
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release list --limit 100 --json tagName --jq '.[].tagName' |
+          while read -r OLD_TAG; do
+            if [ -n "$OLD_TAG" ] && [ "$OLD_TAG" != "$RELEASE_TAG" ]; then
+              gh release upload "$OLD_TAG" module.json --clobber
+            fi
+          done
 
       - name: Verify both release assets were published
         env:

@@ -1,18 +1,20 @@
-# Settlement Tile Manager — v0.2.2.10 beta
+# Settlement Tile Manager — v0.2.2.11 beta
 
 A Foundry VTT v14 viewer and editor for tiles owned by **Settlement Core**. This module supplies the map UI; Settlement Core is the single source of truth for tile records, terrain and tag definitions, exploration, discoverables, calculated DCs, player visibility, building slots, and persistence.
 
 ## Requirements
 
 - Foundry VTT 14.
-- [Settlement Core](https://github.com/FVTT-Mods-Hawthorne/settlement-core-module) 0.3.1 or later.
+- [Settlement Core](https://github.com/FVTT-Mods-Hawthorne/settlement-core-module) 0.3.2 or later.
 - Optional: [Settlement Manager](https://github.com/FridgeboyAI/settlement-manager-module/tree/test). Both modules operate on the same Core tiles.
 
 Install using:
 
-`https://github.com/FVTT-Mods-Hawthorne/settlement-hex-manager/releases/download/v0.2.2.10/module.json`
+`https://raw.githubusercontent.com/FVTT-Mods-Hawthorne/settlement-hex-manager/main/module.json`
 
 Foundry should offer to install Settlement Core from the dependency declared in `module.json`.
+
+This permanent manifest URL is also the automatic-update channel. Release ZIP URLs remain version-specific.
 
 ## What it does
 

@@ -1,6 +1,6 @@
 # Settlement Tile Manager handoff
 
-This describes version `0.2.2.10`. Settlement Tile Manager is a UI client of Settlement Core rather than an independent tile database.
+This describes version `0.2.2.11`. Settlement Tile Manager is a UI client of Settlement Core rather than an independent tile database.
 
 ## Ownership boundary
 
@@ -26,7 +26,7 @@ Settlement Manager owns settlement procedures and building UI. It reads and writ
 
 | Path | Responsibility |
 | --- | --- |
-| `module.json` | Requires Settlement Core 0.3.1+, declares Foundry assets and release URLs. |
+| `module.json` | Requires Settlement Core 0.3.2+, declares the stable update manifest and versioned release ZIP. |
 | `scripts/core.mjs` | Pure Core contract checks, UI projection, save-patch construction, and legacy conversion. |
 | `scripts/module.mjs` | Foundry hooks, UI, Core calls, canvas events, outlines, settings, and migration orchestration. |
 | `styles/module.css` | Viewer/Manager presentation. |
@@ -34,7 +34,7 @@ Settlement Manager owns settlement procedures and building UI. It reads and writ
 
 ## Dependency contract
 
-`checkCoreApi()` requires Settlement Core 0.3.1 or later and these calls:
+`checkCoreApi()` requires Settlement Core 0.3.2 or later and these calls:
 
 ```text
 getState, getTile, getTiles, get, all,
@@ -42,7 +42,7 @@ tileDCs, tileSecurity, isFullyExplored,
 saveTile, revealTile, request
 ```
 
-Core must report version `0.3.1` or newer. This version adds optional exact `dcs.travel`, `dcs.explore`, and `dcs.forage` overrides to the shared tile contract.
+Core must report version `0.3.2` or newer. The shared contract supports optional exact `dcs.travel`, `dcs.explore`, and `dcs.forage` overrides.
 
 The runtime connects during `settlementCore.register` and refreshes during `settlementCore.ready`. It re-renders on `settlementCore.changed`.
 

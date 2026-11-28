@@ -1,7 +1,7 @@
 /** Pure adapters between Settlement Tile Manager's UI and settlement-core's tile contract. */
 export const MODULE_ID = "settlement-hex-manager";
 export const CORE_ID = "settlement-core";
-export const CORE_MIN_VERSION = "0.3.1";
+export const CORE_MIN_VERSION = "0.3.2";
 
 export const uid = () => globalThis.crypto?.randomUUID?.() || `id-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 export const clampInt = (value, min = 0, max = 999999999) => Math.max(min, Math.min(max, Math.trunc(Number(value) || 0)));

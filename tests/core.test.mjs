@@ -3,9 +3,9 @@ import { test } from "node:test";
 import { MODULE_ID, checkCoreApi, compareVersions, tileMeta, viewTile, toCorePatch, migrateLegacyHex } from "../scripts/core.mjs";
 
 const api = Object.fromEntries(["getState", "getTile", "getTiles", "get", "all", "tileDCs", "tileSecurity", "isFullyExplored", "saveTile", "revealTile", "request"].map(name => [name, () => {}]));
-api.version = "0.3.1";
+api.version = "0.3.2";
 
-test("requires the Settlement Core 0.3.1 API contract", () => {
+test("requires the Settlement Core 0.3.2 API contract", () => {
   assert.equal(checkCoreApi(api).ok, true);
   assert.equal(checkCoreApi({ ...api, version: "0.2.1" }).ok, false);
   assert.deepEqual(checkCoreApi({ ...api, saveTile: undefined }).missing, ["saveTile"]);
