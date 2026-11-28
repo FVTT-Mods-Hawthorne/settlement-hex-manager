@@ -3,9 +3,9 @@ import { test } from "node:test";
 import { MODULE_ID, checkCoreApi, compareVersions, tileMeta, viewTile, toCorePatch, migrateLegacyHex } from "../scripts/core.mjs";
 
 const api = Object.fromEntries(["getState", "getTile", "getTiles", "get", "all", "tileDCs", "tileSecurity", "isFullyExplored", "saveTile", "revealTile", "request"].map(name => [name, () => {}]));
-api.version = "0.3.0";
+api.version = "0.3.1";
 
-test("requires the Settlement Core 0.3 API contract", () => {
+test("requires the Settlement Core 0.3.1 API contract", () => {
   assert.equal(checkCoreApi(api).ok, true);
   assert.equal(checkCoreApi({ ...api, version: "0.2.1" }).ok, false);
   assert.deepEqual(checkCoreApi({ ...api, saveTile: undefined }).missing, ["saveTile"]);
@@ -28,13 +28,14 @@ test("Tile Manager saves preserve Settlement Manager slots and other extensions"
     discoverables: [{ id: "ore", type: "stone-outcrop", name: "Stone", tier: 2, modifier: "", found: true, slots: [{ id: "resource-slot", built: "yield-1", pending: null, damaged: false }], notes: "core note", gmNotes: "secret" }],
     ext: { "settlement-manager": { public: { marker: 1 }, gm: {} } }
   };
-  const patch = toCorePatch({ name: "Edited", terrain: "mountain", revealed: true, explores: 3, tags: { lifted: true }, discoverables: [{ id: "ore", type: "stone-outcrop", name: "Edited Stone", tier: 2, modifier: "+1", found: true }], features: [{ id: "poi", name: "Tower", revealed: false }], notes: "players", gmNotes: "gm" }, current);
+  const patch = toCorePatch({ name: "Edited", terrain: "mountain", dcs: { travel: 28, explore: "", forage: 19 }, revealed: true, explores: 3, tags: { lifted: true }, discoverables: [{ id: "ore", type: "stone-outcrop", name: "Edited Stone", tier: 2, modifier: "+1", found: true }], features: [{ id: "poi", name: "Tower", revealed: false }], notes: "players", gmNotes: "gm" }, current);
   assert.deepEqual(patch.discoverables[0].slots, current.discoverables[0].slots);
   assert.equal(patch.discoverables[0].notes, "core note");
   assert.equal(patch.ext["settlement-manager"].public.marker, 1);
   assert.equal(patch.ext[MODULE_ID].public.features.length, 0);
   assert.equal(patch.ext[MODULE_ID].gm.features[0].name, "Tower");
   assert.equal("slots" in patch, false, "Core owns tile building slots and tile.save preserves them");
+  assert.deepEqual(patch.dcs, { travel: 28, explore: null, forage: 19 });
 });
 
 test("Core-shaped tile remains directly usable by Settlement Manager", () => {

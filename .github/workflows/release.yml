@@ -25,12 +25,12 @@ jobs:
           version = m['version']
           tag = f'v{version}'
           expected_manifest = f'https://github.com/${{ github.repository }}/releases/download/{tag}/module.json'
-          expected_download = f'https://github.com/${{ github.repository }}/releases/download/{tag}/settlement-hex-manager-{tag}.zip'
+          expected_download = f'https://github.com/${{ github.repository }}/releases/download/{tag}/settlement-tile-manager-{tag}.zip'
           assert m.get('manifest') == expected_manifest, f"Unexpected manifest URL: {m.get('manifest')}"
           assert m.get('download') == expected_download, f"Unexpected download URL: {m.get('download')}"
           with open(Path(__import__('os').environ['GITHUB_ENV']), 'a') as f:
               f.write(f'RELEASE_TAG={tag}\n')
-              f.write(f'RELEASE_ZIP=settlement-hex-manager-{tag}.zip\n')
+              f.write(f'RELEASE_ZIP=settlement-tile-manager-{tag}.zip\n')
           print('Validated release URLs for', tag)
           PY
 
@@ -50,7 +50,7 @@ jobs:
           if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             gh release create "$RELEASE_TAG" \
               --title "$RELEASE_TAG beta" \
-              --notes "Settlement Tile Manager v0.2.2.9 beta uses Settlement Core as the single source of truth for tiles, definitions, visibility, DCs, discoverables, building slots, and persistence. It preserves Settlement Manager data, supports both map tools together, and migrates the previous private tile journal without deleting it. Includes module.json and an installable ZIP." \
+              --notes "Settlement Tile Manager v0.2.2.10 beta adds exact per-tile Travel, Explore, and Forage DC overrides through Settlement Core 0.3.1, Pathfinder-style Core tag entry, and plain Point of Interest descriptions. The release archive now uses the settlement-tile-manager name. Includes module.json and an installable ZIP." \
               --prerelease \
               --target "$GITHUB_SHA"
           fi

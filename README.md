@@ -1,16 +1,16 @@
-# Settlement Tile Manager — v0.2.2.9 beta
+# Settlement Tile Manager — v0.2.2.10 beta
 
 A Foundry VTT v14 viewer and editor for tiles owned by **Settlement Core**. This module supplies the map UI; Settlement Core is the single source of truth for tile records, terrain and tag definitions, exploration, discoverables, calculated DCs, player visibility, building slots, and persistence.
 
 ## Requirements
 
 - Foundry VTT 14.
-- [Settlement Core](https://github.com/FVTT-Mods-Hawthorne/settlement-core-module) 0.3.0 or later.
+- [Settlement Core](https://github.com/FVTT-Mods-Hawthorne/settlement-core-module) 0.3.1 or later.
 - Optional: [Settlement Manager](https://github.com/FridgeboyAI/settlement-manager-module/tree/test). Both modules operate on the same Core tiles.
 
 Install using:
 
-`https://github.com/FVTT-Mods-Hawthorne/settlement-hex-manager/releases/download/v0.2.2.9/module.json`
+`https://github.com/FVTT-Mods-Hawthorne/settlement-hex-manager/releases/download/v0.2.2.10/module.json`
 
 Foundry should offer to install Settlement Core from the dependency declared in `module.json`.
 
@@ -25,8 +25,8 @@ Enable **Tile Viewer** in Scene controls, then click a Scene grid tile.
 
 The GM editor uses Settlement Core's live registries for:
 
-- Terrain choices and per-tile Difficulty adjustment.
-- Boolean and state-valued terrain tags.
+- Terrain choices, per-tile Difficulty adjustment, and optional exact Travel, Explore, and Forage DC overrides.
+- Pathfinder-style tag entry for Boolean, state-valued, and custom Core tile tags.
 - Revealed state and successful Explore count.
 - Discoverable types, names, tiers, modifiers, and found state.
 - Travel, Explore, and Forage DCs.
@@ -35,7 +35,7 @@ The GM editor uses Settlement Core's live registries for:
 Tile Manager adds presentation fields without competing with Core:
 
 - Tile image, region, zone, owner, cleared, and claimed.
-- Points of Interest with an image, formatted description, and player visibility.
+- Points of Interest with an image, plain-text description, and player visibility.
 - Plain Player Notes and GM Notes.
 
 ## Settlement Manager interoperability

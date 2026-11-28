@@ -1,6 +1,6 @@
 # Settlement Tile Manager handoff
 
-This describes version `0.2.2.9`, the first release where Settlement Tile Manager is a UI client of Settlement Core rather than an independent tile database.
+This describes version `0.2.2.10`. Settlement Tile Manager is a UI client of Settlement Core rather than an independent tile database.
 
 ## Ownership boundary
 
@@ -26,7 +26,7 @@ Settlement Manager owns settlement procedures and building UI. It reads and writ
 
 | Path | Responsibility |
 | --- | --- |
-| `module.json` | Requires Settlement Core 0.3.0+, declares Foundry assets and release URLs. |
+| `module.json` | Requires Settlement Core 0.3.1+, declares Foundry assets and release URLs. |
 | `scripts/core.mjs` | Pure Core contract checks, UI projection, save-patch construction, and legacy conversion. |
 | `scripts/module.mjs` | Foundry hooks, UI, Core calls, canvas events, outlines, settings, and migration orchestration. |
 | `styles/module.css` | Viewer/Manager presentation. |
@@ -34,7 +34,7 @@ Settlement Manager owns settlement procedures and building UI. It reads and writ
 
 ## Dependency contract
 
-`checkCoreApi()` requires these Settlement Core calls:
+`checkCoreApi()` requires Settlement Core 0.3.1 or later and these calls:
 
 ```text
 getState, getTile, getTiles, get, all,
@@ -42,7 +42,7 @@ tileDCs, tileSecurity, isFullyExplored,
 saveTile, revealTile, request
 ```
 
-Core must report version `0.3.0` or newer. The manifest also declares this requirement so Foundry can install and order modules correctly.
+Core must report version `0.3.1` or newer. This version adds optional exact `dcs.travel`, `dcs.explore`, and `dcs.forage` overrides to the shared tile contract.
 
 The runtime connects during `settlementCore.register` and refreshes during `settlementCore.ready`. It re-renders on `settlementCore.changed`.
 
@@ -52,7 +52,7 @@ Tile Manager consumes Core's tile shape directly:
 
 ```js
 {
-  key, name, terrain, adjust, tags,
+  key, name, terrain, adjust, dcs, tags,
   revealed, explores,
   discoverables, slots,
   notes, gmNotes, ext
@@ -126,7 +126,7 @@ Persistent outlines draw first and green hover draws last.
 Do not hard-code campaign terrain, tags, or discoverables in this module.
 
 - Terrain options come from `core.all("terrains")`.
-- Tag controls come from `core.all("tags")`; definitions with `states` render a state selector.
+- Tag suggestions come from `core.all("tags")` and render in a Pathfinder-style tag entry. State tags are stored as `id:state` entries and custom slugs remain valid Core tags.
 - Discoverable options come from `core.all("discoverables")`.
 - Labels and categories come from `core.get(kind, id)`.
 - Building labels shown on existing slots come from `core.get("buildings", id)`.

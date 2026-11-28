@@ -12,9 +12,8 @@ const field = (label, name, value, type = "text") => `<label>${esc(label)}<input
 const check = (label, name, value) => `<label class="shm-check"><input type="checkbox" name="${esc(name)}" ${value ? "checked" : ""}>${esc(label)}</label>`;
 const image = (src, cls = "shm-thumb") => src ? `<img class="${cls}" src="${esc(src)}" alt="">` : `<span class="${cls} shm-placeholder">◇</span>`;
 const imageField = (label, name, value) => `<label class="shm-image-field">${esc(label)}<span class="shm-image-controls"><input type="text" name="${esc(name)}" value="${esc(value)}"><button type="button" data-action="pick-image" data-target="${esc(name)}" data-type="image">Browse…</button></span></label>`;
-const richSlot = (label, name, value, fieldName = name) => `<label class="shm-rich-label">${esc(label)}<span class="shm-rich-slot" data-rich-name="${esc(name)}" data-rich-field="${esc(fieldName)}" data-rich-value="${esc(value || "")}"></span></label>`;
 const valueOf = (name, root = modal) => root?.querySelector(`[name="${CSS.escape(name)}"]`)?.value ?? "";
-const safeRich = value => { const template = document.createElement("template"); template.innerHTML = String(value || ""); template.content.querySelectorAll("script,style,iframe,object,embed").forEach(element => element.remove()); template.content.querySelectorAll("*").forEach(element => { for (const attribute of [...element.attributes]) if (attribute.name.startsWith("on") || ((attribute.name === "href" || attribute.name === "src") && /^javascript:/i.test(attribute.value))) element.removeAttribute(attribute.name); }); return template.innerHTML; };
+const slug = value => String(value || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
 
 let coreApi = null, coreStatus = { ok: false, version: "", missing: ["api"] };
 let active = null, modal = null, hoverKey = null, tileViewerMode = false, canvasElement = null, canvasHandlers = [], graphics = null;
@@ -50,17 +49,9 @@ function options(items, selected, includeUnknown = true) {
   if (includeUnknown && selected && !list.some(item => item.id === selected)) list.unshift({ id: selected, label: selected });
   return list.map(item => `<option value="${esc(item.id)}" ${item.id === selected ? "selected" : ""}>${esc(item.label || item.id)}</option>`).join("");
 }
-function mountRichEditors(root = modal) {
-  const Editor = foundry?.applications?.elements?.HTMLProseMirrorElement;
-  for (const slot of root?.querySelectorAll?.(".shm-rich-slot") || []) {
-    const config = { name: slot.dataset.richName, value: slot.dataset.richValue || "", dataset: { field: slot.dataset.richField || slot.dataset.richName }, classes: "shm-rich-editor", collaborate: false, documentUUID: "", toggled: false, height: 160 };
-    try { if (!Editor?.create) throw Error("Foundry ProseMirror element unavailable"); slot.replaceWith(Editor.create(config)); }
-    catch (error) { debug("rich editor fallback", { error: error.message }); const textarea = document.createElement("textarea"); textarea.name = config.name; textarea.dataset.field = config.dataset.field; textarea.value = config.value; slot.replaceWith(textarea); }
-  }
-}
 function featureRow(feature = { id: uid(), name: "", thumbnail: "", description: "", revealed: false }) {
   const imageName = `feature-image-${feature.id}`;
-  return `<div class="shm-feature" data-id="${esc(feature.id)}"><label>Point of Interest name<input data-field="name" type="text" value="${esc(feature.name || "")}"></label><label class="shm-image-field">Image<span class="shm-image-controls"><input data-field="thumbnail" type="text" name="${esc(imageName)}" value="${esc(feature.thumbnail || "")}"><button type="button" data-action="pick-image" data-target="${esc(imageName)}" data-type="image">Browse…</button></span></label><span data-image-preview>${image(feature.thumbnail || "")}</span>${richSlot("Description", `feature-description-${feature.id}`, feature.description || "", "description")}<label class="shm-check"><input data-field="revealed" type="checkbox" ${feature.revealed ? "checked" : ""}>Visible to players</label>${button("remove-feature", "Remove")}</div>`;
+  return `<div class="shm-feature" data-id="${esc(feature.id)}"><label>Point of Interest name<input data-field="name" type="text" value="${esc(feature.name || "")}"></label><label class="shm-image-field">Image<span class="shm-image-controls"><input data-field="thumbnail" type="text" name="${esc(imageName)}" value="${esc(feature.thumbnail || "")}"><button type="button" data-action="pick-image" data-target="${esc(imageName)}" data-type="image">Browse…</button></span></label><span data-image-preview>${image(feature.thumbnail || "")}</span><label class="shm-poi-description">Description<textarea data-field="description">${esc(feature.description || "")}</textarea></label><label class="shm-check"><input data-field="revealed" type="checkbox" ${feature.revealed ? "checked" : ""}>Visible to players</label>${button("remove-feature", "Remove")}</div>`;
 }
 function slotSummary(slots = []) {
   if (!slots.length) return "";
@@ -74,13 +65,50 @@ function discoverableRow(item = { id: uid(), type: "", name: "", tier: 1, modifi
 function readDiscoverableRow(element) {
   return { id: element.dataset.id, type: element.querySelector('[data-field="type"]')?.value || "", name: element.querySelector('[data-field="name"]')?.value || "", tier: Number(element.querySelector('[data-field="tier"]')?.value) || 1, modifier: element.querySelector('[data-field="modifier"]')?.value || "", found: !!element.querySelector('[data-field="found"]')?.checked };
 }
+function tagChoices() {
+  return definitions("tags").flatMap(tag => tag.states?.length
+    ? tag.states.map(state => ({ token: `${tag.id}:${state}`, label: `${tag.label || tag.id}: ${state}` }))
+    : [{ token: tag.id, label: tag.label || tag.id }]);
+}
+function tagTokenLabel(token) {
+  const [id, state] = String(token).split(":", 2), def = definition("tags", id);
+  return `${def?.label || id}${state ? `: ${state}` : ""}`;
+}
+function tagPill(token) {
+  return `<button type="button" class="tag shm-tag-pill" data-action="tag-remove" data-tag-token="${esc(token)}" title="Remove ${esc(tagTokenLabel(token))}"><span>${esc(tagTokenLabel(token))}</span><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>`;
+}
 function tagEditor(tags = {}) {
-  return definitions("tags").map(tag => tag.states?.length
-    ? `<label>${esc(tag.label || tag.id)}<select data-tile-tag="${esc(tag.id)}"><option value="">Absent</option>${tag.states.map(state => `<option value="${esc(state)}" ${tags[tag.id] === state ? "selected" : ""}>${esc(state)}</option>`).join("")}</select></label>`
-    : `<label class="shm-check"><input type="checkbox" data-tile-tag="${esc(tag.id)}" ${tags[tag.id] ? "checked" : ""}>${esc(tag.label || tag.id)}</label>`).join("");
+  const tokens = Object.entries(tags || {}).filter(([, value]) => value).map(([id, value]) => value === true ? id : `${id}:${value}`);
+  const list = `shm-tag-options-${Math.random().toString(36).slice(2)}`;
+  return `<label class="shm-tag-label">Tile tags<div class="tags paizo-style pf2e-tagify tagify shm-tagify" data-core-tags><span class="shm-tag-pills">${tokens.map(tagPill).join("")}</span><input type="text" data-tag-entry list="${list}" placeholder="Add a tag and press Enter" autocomplete="off"></div><datalist id="${list}">${tagChoices().map(choice => `<option value="${esc(choice.label)}"></option>`).join("")}</datalist><small>Uses Settlement Core tag IDs. Pathfinder-style entries accept custom tags and Core state tags such as “Crystal Waters: dense”.</small></label>`;
+}
+function normalizeTagToken(raw) {
+  const input = String(raw || "").trim(); if (!input) return "";
+  const choice = tagChoices().find(value => value.token.toLowerCase() === input.toLowerCase() || value.label.toLowerCase() === input.toLowerCase());
+  if (choice) return choice.token;
+  const [name, state] = input.split(":", 2); const id = slug(name), cleanState = slug(state);
+  return id ? `${id}${cleanState ? `:${cleanState}` : ""}` : "";
+}
+function commitTagEntry(root) {
+  const input = root?.querySelector?.("[data-tag-entry]"); if (!input) return;
+  for (const raw of input.value.split(",")) {
+    const token = normalizeTagToken(raw); if (!token) continue;
+    const pills = input.closest("[data-core-tags]")?.querySelector(".shm-tag-pills");
+    if (pills && !pills.querySelector(`[data-tag-token="${CSS.escape(token)}"]`)) pills.insertAdjacentHTML("beforeend", tagPill(token));
+  }
+  input.value = "";
+}
+function mountTagEditor(root = modal) {
+  const input = root?.querySelector?.("[data-tag-entry]"); if (!input || input.dataset.bound) return;
+  input.dataset.bound = "true";
+  input.addEventListener("keydown", event => { if (event.key !== "Enter" && event.key !== ",") return; event.preventDefault(); commitTagEntry(input.closest("[data-core-tags]")); });
+  input.addEventListener("blur", () => commitTagEntry(input.closest("[data-core-tags]")));
 }
 function readTags(form) {
-  return Object.fromEntries([...form.querySelectorAll("[data-tile-tag]")].map(input => [input.dataset.tileTag, input.type === "checkbox" ? input.checked : input.value]).filter(([, value]) => value));
+  commitTagEntry(form);
+  return Object.fromEntries([...form.querySelectorAll("[data-tag-token]")].map(element => {
+    const [id, state] = element.dataset.tagToken.split(":", 2); return [id, state || true];
+  }));
 }
 function discoverablePreview(item) {
   const def = definition("discoverables", item.type) || {};
@@ -105,21 +133,22 @@ function renderModal() {
   if (!modal) return;
   if (!coreStatus.ok) { modal.innerHTML = `<header class="shm-modal-header"><strong>Tile Viewer</strong>${button("close", "×")}</header><div class="shm-modal-body"><p>Settlement Core ${esc(CORE_MIN_VERSION)} or later must be active.</p></div>`; return; }
   const mode = modal.dataset.mode, sid = active?.sceneId, key = active?.key, saved = key ? displayTile(sid, key) : null;
-  const tile = mode === "edit" && gm() ? (saved || viewTile({ key, name: "", terrain: definitions("terrains")[0]?.id || "", adjust: 0, tags: {}, revealed: false, explores: 0, discoverables: [], slots: [], notes: "", gmNotes: "", ext: {} }, { isGM: true })) : saved;
+  const tile = mode === "edit" && gm() ? (saved || viewTile({ key, name: "", terrain: definitions("terrains")[0]?.id || "", adjust: 0, dcs: { travel: null, explore: null, forage: null }, tags: {}, revealed: false, explores: 0, discoverables: [], slots: [], notes: "", gmNotes: "", ext: {} }, { isGM: true })) : saved;
   let out = `<header class="shm-modal-header"><strong>${mode === "edit" ? "Tile Manager" : "Tile Viewer"}</strong>${button("close", "×")}</header><div class="shm-modal-body">`;
   if (!key) out += "<p>Select a grid tile while Tile Viewer mode is active.</p>";
   else if (!tile) { out += "<p>No accessible Settlement Core tile data exists here.</p>"; if (gm()) out += button("edit", "Create Tile Data"); }
   else if (mode === "edit" && gm()) {
-    out += `<h3>${esc(key)}</h3><form id="shm-tile-form">${field("Name", "name", tile.name)}${imageField("Tile image", "thumbnail", tile.thumbnail || "")}<span data-image-preview>${image(tile.thumbnail)}</span>${field("Region", "region", tile.region)}${field("Zone", "zone", tile.zone)}<fieldset><legend>Settlement Core terrain</legend><label>Terrain<select name="terrain"><option value="">None</option>${options(definitions("terrains"), tile.terrain)}</select></label>${field("Difficulty adjustment", "adjust", tile.adjust || 0, "number")}<div class="shm-tag-grid">${tagEditor(tile.tags)}</div></fieldset><fieldset><legend>Exploration</legend>${check("Revealed", "revealed", tile.revealed)}${field("Successful explores", "explores", tile.explores || 0, "number")}${check("Cleared", "cleared", tile.cleared)}${check("Claimed", "claimed", tile.claimed)}</fieldset>${field("Owner", "owner", tile.owner)}<fieldset><legend>Discoverables (Settlement Core)</legend><div id="shm-discoverable-list">${(tile.discoverables || []).map(discoverableRow).join("")}</div>${button("discoverable-add", "Add Discoverable")}</fieldset><fieldset><legend>Points of Interest (Tile Manager extension)</legend><div id="shm-feature-list">${(tile.features || []).map(featureRow).join("")}</div>${button("feature-add", "Add Point of Interest")}</fieldset><label>Player Notes<textarea name="notes">${esc(tile.notes)}</textarea></label><label>GM Notes<textarea name="gmNotes">${esc(tile.gmNotes)}</textarea></label>${button("tile-save", "Save Tile")} ${saved ? button("tile-delete", "Clear Presentation Data") : ""} ${button("tile", "Cancel")}</form>`;
+    const overrides = tile.dcOverrides || {};
+    out += `<h3>${esc(key)}</h3><form id="shm-tile-form">${field("Name", "name", tile.name)}${imageField("Tile image", "thumbnail", tile.thumbnail || "")}<span data-image-preview>${image(tile.thumbnail)}</span>${field("Region", "region", tile.region)}${field("Zone", "zone", tile.zone)}<fieldset><legend>Settlement Core terrain</legend><label>Terrain<select name="terrain"><option value="">None</option>${options(definitions("terrains"), tile.terrain)}</select></label>${field("Difficulty adjustment", "adjust", tile.adjust || 0, "number")}<div class="shm-dc-grid">${field("Travel DC override", "travelDC", overrides.travel ?? "", "number")}${field("Explore DC override", "exploreDC", overrides.explore ?? "", "number")}${field("Forage DC override", "forageDC", overrides.forage ?? "", "number")}</div><small>Leave a DC blank to use Settlement Core's calculated value.</small>${tagEditor(tile.tags)}</fieldset><fieldset><legend>Exploration</legend>${check("Revealed", "revealed", tile.revealed)}${field("Successful explores", "explores", tile.explores || 0, "number")}${check("Cleared", "cleared", tile.cleared)}${check("Claimed", "claimed", tile.claimed)}</fieldset>${field("Owner", "owner", tile.owner)}<fieldset><legend>Discoverables (Settlement Core)</legend><div id="shm-discoverable-list">${(tile.discoverables || []).map(discoverableRow).join("")}</div>${button("discoverable-add", "Add Discoverable")}</fieldset><fieldset><legend>Points of Interest (Tile Manager extension)</legend><div id="shm-feature-list">${(tile.features || []).map(featureRow).join("")}</div>${button("feature-add", "Add Point of Interest")}</fieldset><label>Player Notes<textarea name="notes">${esc(tile.notes)}</textarea></label><label>GM Notes<textarea name="gmNotes">${esc(tile.gmNotes)}</textarea></label>${button("tile-save", "Save Tile")} ${saved ? button("tile-delete", "Clear Presentation Data") : ""} ${button("tile", "Cancel")}</form>`;
   } else {
     const terrain = definition("terrains", tile.terrain), dcs = tile.dcs || {}, visibleDiscoverables = tile.discoverables || [];
     const tagText = Object.entries(tile.tags || {}).map(([id, value]) => `${definition("tags", id)?.label || id}${value === true ? "" : `: ${value}`}`).join(", ") || "None";
     out += `<div class="shm-tile-top">${image(tile.thumbnail)}<div><h3>${esc(tile.name || `Tile ${key}`)}</h3><small>${esc(key)} · ${esc(tile.region || "Unknown region")}</small><p><b>Exploration:</b> ${tile.fullyExplored ? "Fully Explored" : tile.revealed ? `${esc(tile.explores || 0)} / ${esc(dcs.exploresNeeded || 6)}` : "Unrevealed"}</p></div></div><dl>`;
     for (const [label, value] of [["Terrain", terrain?.label || tile.terrain || "None"], ["Tags", tagText], ["Travel DC", dcs.travel ?? (dcs.impassable ? "Impassable" : "—")], ["Explore DC", dcs.explore ?? "—"], ["Forage DC", dcs.forage ?? "—"], ["Security", tile.security], ["Cleared", tile.cleared ? "Yes" : "No"], ["Claimed", tile.claimed ? "Yes" : "No"]]) out += `<dt>${esc(label)}</dt><dd>${esc(value)}</dd>`;
-    out += `</dl>${dcs.impassable ? `<small>Travel requires ${esc(dcs.impassable)}.</small>` : ""}<h4>Discoverables</h4>${visibleDiscoverables.map(discoverablePreview).join("") || "<p>No visible discoverables.</p>"}<h4>Points of Interest</h4>${(tile.features || []).map(feature => `<div class="shm-feature-preview">${image(feature.thumbnail)}<div><b>${esc(feature.name || "Point of Interest")}</b><div class="shm-rich-display">${safeRich(feature.description)}</div>${gm() && !feature.revealed ? "<small>GM hidden</small>" : ""}</div></div>`).join("") || "<p>No visible Points of Interest.</p>"}<h4>Player Notes</h4><p>${esc(tile.notes) || "None."}</p>`;
+    out += `</dl>${dcs.impassable ? `<small>Travel requires ${esc(dcs.impassable)}.</small>` : ""}<h4>Discoverables</h4>${visibleDiscoverables.map(discoverablePreview).join("") || "<p>No visible discoverables.</p>"}<h4>Points of Interest</h4>${(tile.features || []).map(feature => `<div class="shm-feature-preview">${image(feature.thumbnail)}<div><b>${esc(feature.name || "Point of Interest")}</b><p>${esc(feature.description) || "No description."}</p>${gm() && !feature.revealed ? "<small>GM hidden</small>" : ""}</div></div>`).join("") || "<p>No visible Points of Interest.</p>"}<h4>Player Notes</h4><p>${esc(tile.notes) || "None."}</p>`;
     if (gm()) out += `<details><summary>GM Notes</summary><p>${esc(tile.gmNotes) || "None."}</p></details>${button("edit", "Edit Tile Data")} ${button("tile-reveal", tile.revealed ? "Hide Tile" : "Reveal Tile")}`;
   }
-  modal.innerHTML = out + "</div>"; mountRichEditors(modal);
+  modal.innerHTML = out + "</div>"; mountTagEditor(modal);
 }
 
 async function pickImage(targetButton) {
@@ -136,13 +165,14 @@ async function modalClick(event) {
     if (action === "close") { modal.remove(); modal = null; return; }
     if (action === "tile" || action === "edit") { modalOpen(action); return; }
     if (action === "pick-image") { await pickImage(target); return; }
-    if (action === "feature-add") { const list = modal.querySelector("#shm-feature-list"); list.insertAdjacentHTML("beforeend", featureRow()); mountRichEditors(list); return; }
+    if (action === "feature-add") { modal.querySelector("#shm-feature-list").insertAdjacentHTML("beforeend", featureRow()); return; }
+    if (action === "tag-remove") { target.remove(); return; }
     if (action === "remove-feature") { target.closest(".shm-feature")?.remove(); return; }
     if (action === "discoverable-add") { modal.querySelector("#shm-discoverable-list").insertAdjacentHTML("beforeend", discoverableRow()); return; }
     if (action === "remove-discoverable") { target.closest(".shm-discoverable")?.remove(); return; }
     if (action === "tile-save") {
-      const form = modal.querySelector("#shm-tile-form"); form.querySelectorAll("prose-mirror").forEach(editor => editor.save?.());
-      const draft = { name: valueOf("name", form), thumbnail: valueOf("thumbnail", form), region: valueOf("region", form), zone: valueOf("zone", form), terrain: valueOf("terrain", form), adjust: valueOf("adjust", form), owner: valueOf("owner", form), explores: valueOf("explores", form), notes: valueOf("notes", form), gmNotes: valueOf("gmNotes", form), revealed: !!form.querySelector('[name="revealed"]')?.checked, cleared: !!form.querySelector('[name="cleared"]')?.checked, claimed: !!form.querySelector('[name="claimed"]')?.checked, tags: readTags(form) };
+      const form = modal.querySelector("#shm-tile-form");
+      const draft = { name: valueOf("name", form), thumbnail: valueOf("thumbnail", form), region: valueOf("region", form), zone: valueOf("zone", form), terrain: valueOf("terrain", form), adjust: valueOf("adjust", form), dcs: { travel: valueOf("travelDC", form), explore: valueOf("exploreDC", form), forage: valueOf("forageDC", form) }, owner: valueOf("owner", form), explores: valueOf("explores", form), notes: valueOf("notes", form), gmNotes: valueOf("gmNotes", form), revealed: !!form.querySelector('[name="revealed"]')?.checked, cleared: !!form.querySelector('[name="cleared"]')?.checked, claimed: !!form.querySelector('[name="claimed"]')?.checked, tags: readTags(form) };
       draft.discoverables = [...form.querySelectorAll(".shm-discoverable")].map(readDiscoverableRow).filter(item => item.type || item.name);
       draft.features = [...form.querySelectorAll(".shm-feature")].map(element => ({ id: element.dataset.id, name: element.querySelector('[data-field="name"]')?.value || "", thumbnail: element.querySelector('[data-field="thumbnail"]')?.value || "", description: element.querySelector('[data-field="description"]')?.value || "", revealed: !!element.querySelector('[data-field="revealed"]')?.checked })).filter(feature => feature.name || feature.thumbnail || feature.description);
       await core().saveTile(sid, key, toCorePatch(draft, existingTile(sid, key))); modalOpen("tile"); return;

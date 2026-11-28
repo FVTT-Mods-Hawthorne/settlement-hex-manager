@@ -1,7 +1,7 @@
 /** Pure adapters between Settlement Tile Manager's UI and settlement-core's tile contract. */
 export const MODULE_ID = "settlement-hex-manager";
 export const CORE_ID = "settlement-core";
-export const CORE_MIN_VERSION = "0.3.0";
+export const CORE_MIN_VERSION = "0.3.1";
 
 export const uid = () => globalThis.crypto?.randomUUID?.() || `id-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 export const clampInt = (value, min = 0, max = 999999999) => Math.max(min, Math.min(max, Math.trunc(Number(value) || 0)));
@@ -56,6 +56,7 @@ export function viewTile(tile, { isGM = false, dcs = null, security = 0, fullyEx
     ...meta,
     id: tile.key,
     discovered: !!tile.revealed,
+    dcOverrides: copy(object(tile.dcs)),
     dcs,
     security: Number(security) || 0,
     fullyExplored: !!fullyExplored
@@ -94,6 +95,10 @@ export function toCorePatch(draft, current = null) {
     name: text(draft.name, 120),
     terrain: text(draft.terrain, 60),
     adjust: clampInt(draft.adjust, -20, 20),
+    dcs: Object.fromEntries(["travel", "explore", "forage"].map(id => {
+      const value = object(draft.dcs)[id];
+      return [id, value === null || value === undefined || value === "" ? null : clampInt(value, 0, 99)];
+    })),
     tags: Object.fromEntries(Object.entries(object(draft.tags)).filter(([, value]) => value)),
     revealed: !!draft.revealed,
     explores: clampInt(draft.explores, 0, 99),

@@ -2,7 +2,7 @@
   "id": "settlement-hex-manager",
   "title": "Settlement Tile Manager",
   "description": "Settlement Core tile viewer and editor with terrain, exploration, discoverables, Points of Interest, player-safe views, and Settlement Manager interoperability.",
-  "version": "0.2.2.9",
+  "version": "0.2.2.10",
   "authors": [
     {
       "name": "Community prototype"
@@ -30,9 +30,9 @@
       {
         "id": "settlement-core",
         "type": "module",
-        "manifest": "https://github.com/FVTT-Mods-Hawthorne/settlement-core-module/releases/download/v0.3.0/module.json",
+        "manifest": "https://github.com/FVTT-Mods-Hawthorne/settlement-core-module/releases/download/v0.3.1/module.json",
         "compatibility": {
-          "minimum": "0.3.0"
+          "minimum": "0.3.1"
         }
       }
     ]
@@ -44,8 +44,8 @@
       }
     }
   },
-  "manifest": "https://github.com/FVTT-Mods-Hawthorne/settlement-hex-manager/releases/download/v0.2.2.9/module.json",
+  "manifest": "https://github.com/FVTT-Mods-Hawthorne/settlement-hex-manager/releases/download/v0.2.2.10/module.json",
   "license": "MIT",
   "url": "https://github.com/FVTT-Mods-Hawthorne/settlement-hex-manager",
-  "download": "https://github.com/FVTT-Mods-Hawthorne/settlement-hex-manager/releases/download/v0.2.2.9/settlement-hex-manager-v0.2.2.9.zip"
+  "download": "https://github.com/FVTT-Mods-Hawthorne/settlement-hex-manager/releases/download/v0.2.2.10/settlement-tile-manager-v0.2.2.10.zip"
 }
