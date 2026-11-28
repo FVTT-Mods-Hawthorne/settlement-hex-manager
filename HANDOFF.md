@@ -1,256 +1,191 @@
 # Settlement Tile Manager handoff
 
-This document is the technical handoff for humans and AI agents maintaining `settlement-hex-manager`. It describes release `0.2.2.8` and should be updated whenever the runtime architecture, stored schema, public API, or release process changes.
+This describes version `0.2.2.9`, the first release where Settlement Tile Manager is a UI client of Settlement Core rather than an independent tile database.
 
-## Scope
+## Ownership boundary
 
-The module adds exploration metadata, visibility rules, highlights, and a viewer/editor to Foundry VTT Scene grid tiles. It targets Foundry VTT v14 and is game-system agnostic.
+Settlement Core owns:
 
-The runtime does **not** manage settlements, settlement economies, phases, leaders, teams, activities, party membership, or settlement Actors. Those systems were removed in `0.2.2.8`. Old settlement/team state is retained as an opaque `state` object when the private database is rewritten so upgrading does not silently destroy prior plugin data, but no current code reads or changes that object.
+- The authoritative private journal and player-safe world setting.
+- GM authority, socket requests, write serialization, validation, and revision tracking.
+- Tile identity (`sceneId` plus `"row,col"`).
+- `name`, `terrain`, `adjust`, `tags`, `revealed`, `explores`, `discoverables`, `slots`, `notes`, `gmNotes`, and `ext`.
+- Terrain, tag, discoverable, building, resource, and activity definitions.
+- Travel/Explore/Forage DCs, fully explored state, Security, Work profiles, and building placement rules.
+
+Tile Manager owns only:
+
+- Scene pointer interaction, PIXI outlines, and the Viewer/Manager window.
+- Tile presentation metadata in its Core extension namespace.
+- The optional Landmark Feature Item subtype.
+- One-time migration from its pre-Core journal.
+
+Settlement Manager owns settlement procedures and building UI. It reads and writes the same Core tile objects. Tile Manager must never duplicate those records or replace their building slots.
 
 ## Repository map
 
 | Path | Responsibility |
 | --- | --- |
-| `module.json` | Foundry manifest, compatibility, scripts/styles, Item subtype, and release URLs. |
-| `scripts/core.mjs` | Pure tile defaults, normalization, migration, DC calculations, and player-safe filtering. |
-| `scripts/module.mjs` | Foundry hooks, storage, sockets, permissions, modal UI, canvas interaction, highlights, settings, and public API. |
-| `styles/module.css` | Tile Viewer/Manager layout and tile-content styling. |
-| `lang/en.json` | Labels for the module-owned Landmark Feature Item subtype. |
-| `tests/core.test.mjs` | Node regression tests for pure tile behavior. |
-| `.github/workflows/release.yml` | Manifest validation, ZIP packaging, prerelease creation, and asset upload. |
+| `module.json` | Requires Settlement Core 0.3.0+, declares Foundry assets and release URLs. |
+| `scripts/core.mjs` | Pure Core contract checks, UI projection, save-patch construction, and legacy conversion. |
+| `scripts/module.mjs` | Foundry hooks, UI, Core calls, canvas events, outlines, settings, and migration orchestration. |
+| `styles/module.css` | Viewer/Manager presentation. |
+| `tests/core.test.mjs` | Contract, privacy, slot-preservation, and migration tests. |
 
-## Runtime lifecycle
+## Dependency contract
 
-1. The `init` hook registers the Landmark Feature Item data model, module settings, and `game.modules.get("settlement-hex-manager").api`.
-2. The `ready` hook subscribes to the module socket. A GM loads the shared private journal; a player loads sanitized Scene flags and requests a snapshot from an active GM when possible.
-3. `canvasReady` binds pointer handlers to the current canvas and creates the PIXI outline layer.
-4. The **Tile Viewer** Scene control toggles every tile interaction. When it is off, there is no hover outline, persistent outline, or tile-click interception.
-5. A GM save is routed to the authoritative active GM, normalized, persisted to the private journal, copied to sanitized Scene flags, and announced to other clients.
+`checkCoreApi()` requires these Settlement Core calls:
 
-## Authority and sockets
-
-The socket channel is `module.settlement-hex-manager`. `authority()` chooses the lexicographically lowest active GM user ID; that client is the host for mutations. This gives all clients a deterministic authority without a separate election record.
-
-Socket messages use these shapes:
-
-- `{type: "request", action, args, requestId, target, sender}` asks the host to perform an action.
-- `{type: "reply", to, requestId, ok, value, error}` resolves or rejects the caller's pending promise.
-- `{type: "changed"}` tells other clients to reload shared or public data.
-
-The host accepts `snapshot` from any connected user. `saveTile`, `deleteTile`, `deleteAllTiles`, and `reveal` require the sender to be a GM. Host mutations are chained through `queue` to prevent overlapping journal writes.
-
-## Storage
-
-### Private authoritative data
-
-`storePage()` finds or creates a Journal Entry flagged at:
-
-`flags.settlement-hex-manager.store = true`
-
-The entry is named **Settlement Tile Manager — Private State** and contains a text page named **Private State JSON**. Every current GM receives ownership level 3. The page contains JSON:
-
-```json
-{
-  "state": {},
-  "maps": {
-    "SCENE_ID": {
-      "enabled": true,
-      "revision": 1,
-      "hexes": {
-        "ROW,COLUMN": {}
-      }
-    }
-  }
-}
+```text
+getState, getTile, getTiles, get, all,
+tileDCs, tileSecurity, isFullyExplored,
+saveTile, revealTile, request
 ```
 
-`state` is legacy opaque data. `maps` is authoritative current data. Tile keys are produced by `keyOf(i, j)` and currently use the string form `"i,j"` returned from Foundry's grid offset.
+Core must report version `0.3.0` or newer. The manifest also declares this requirement so Foundry can install and order modules correctly.
 
-If the journal JSON cannot be parsed, the module resets only this module's private `maps` and legacy `state`, rewrites the page, and warns the GM. It does not delete Actors, Items, Scenes, or other modules' data.
+The runtime connects during `settlementCore.register` and refreshes during `settlementCore.ready`. It re-renders on `settlementCore.changed`.
 
-### Player-accessible data
+## Core tile schema
 
-Each Scene can carry a sanitized map at:
-
-`flags.settlement-hex-manager.publicMap`
-
-`syncPublicMaps()` writes only maps with player-relevant data. `safeMap()`/`publicHex()` remove GM Notes, hidden Points of Interest, and unfound discoverables. Players can therefore read permitted tile data without owning the private journal. Scene flags are neutral world data rather than data owned by the GM who created the tile.
-
-## Tile schema
-
-`blankHex(id)` defines the canonical defaults. A normalized tile has:
+Tile Manager consumes Core's tile shape directly:
 
 ```js
 {
-  id, name, region, zone,
-  terrain, hillsOverlay, difficulty, terrainTags,
-  pathBonus, travelType,
-  discovered, status, cleared, claimed,
-  thumbnail, security, owner,
-  notes, gmNotes,
-  features, discoverables
+  key, name, terrain, adjust, tags,
+  revealed, explores,
+  discoverables, slots,
+  notes, gmNotes, ext
 }
 ```
 
-Important rules enforced by `validateHex()`:
+Discoverables remain Core records:
 
-- `claimed` implies `discovered`.
-- Terrain must be one of `TERRAIN_TYPES`; tags must be in `TERRAIN_TAGS`.
-- Difficulty, path bonus, security, tier, and modifiers are numeric and bounded.
-- A discoverable tier is 1–4 and its improvement list is truncated to the tier's slot count.
-- Legacy `reconnoitered` becomes `status: "mapped"`.
-- Legacy `commodity` and `camp` values become discoverables, after which those legacy fields are removed.
+```js
+{ id, type, name, tier, modifier, found, slots, notes, gmNotes }
+```
 
-### Point of Interest (`features[]`)
+`type` is a Core discoverable definition ID. `slots` are building/improvement slots used by Settlement Manager. `toCorePatch()` copies current discoverable slots and notes when the Tile Manager form edits the other fields.
+
+The tile-level `slots` property is deliberately omitted from a Tile Manager save patch. Core's `tile.save` action preserves it.
+
+## Tile Manager extension
+
+Core validates extensions as `{ public, gm }`. Tile Manager uses:
+
+```js
+tile.ext["settlement-hex-manager"] = {
+  public: {
+    thumbnail, region, zone, owner,
+    cleared, claimed,
+    features: [/* visible Points of Interest only */]
+  },
+  gm: {
+    features: [/* complete Point of Interest list */]
+  }
+};
+```
+
+Each Point of Interest is:
 
 ```js
 { id, name, thumbnail, description, revealed }
 ```
 
-`description` may contain Foundry editor HTML. `revealed` controls player visibility.
+Core strips every extension's `gm` object from player state. Tile Manager also stores only revealed Points of Interest in `public`, so privacy does not depend on CSS or client-side filtering.
 
-### Discoverable (`discoverables[]`)
+`toCorePatch()` preserves every other module's `tile.ext` entry.
 
-```js
-{ id, name, category, tier, modifier, found, improvements }
-```
+## Runtime flow
 
-`found` controls player visibility. `improvements` is an array of text values with at most `tier` entries.
+1. `init` registers settings, the Landmark Feature Item subtype, and Tile Manager's small API.
+2. `settlementCore.register` captures the Core API during Foundry setup.
+3. `settlementCore.ready` validates Core, performs one-time legacy migration on the host GM, binds the canvas, and renders.
+4. Tile Viewer mode controls all hover and click behavior.
+5. A click reads the tile synchronously from Core and opens Viewer or GM editor.
+6. Save builds a Core patch and calls `core.saveTile()`.
+7. Core serializes, validates, persists, publishes player data, and fires `settlementCore.changed`.
+8. Tile Manager re-renders the modal and outlines from Core's new state.
 
-## DC rules
+There is no Tile Manager socket, journal write, Scene flag, public-map cache, or independent authority election after migration.
 
-`tileDCs(hex)` returns `travel`, `explore`, `forage`, `base`, `exploredAdjustment`, and `pathBonus`.
+## Canvas and Settlement Manager coexistence
 
-- Base DC is the tile difficulty, default 15.
-- A Fully Explored tile applies −2 to all three DCs.
-- Path bonus reduces Travel DC only.
-- `travel = base + exploredAdjustment - pathBonus`.
-- `explore = forage = base + exploredAdjustment`.
-- Final values cannot be lower than 0.
+Tile Manager binds to the canvas only while preserving event propagation. It calls `preventDefault()` for its own selection but does not call `stopImmediatePropagation()`. Settlement Manager's Hex Buildings tool listens on the board and can therefore open its panel for the same tile when both tools are enabled.
 
-`exploredLabel()` reports Unexplored, Discovered, Explored, or Fully Explored from `discovered`, `status`, `cleared`, and `claimed`.
+Outlines appear only in Tile Viewer mode:
 
-## Canvas behavior
+- Green: hover.
+- Blue: `tile.revealed` and not claimed.
+- Gold: `tile.ext.settlement-hex-manager.public.claimed`.
 
-The module uses Foundry grid APIs instead of manually calculating hex offsets:
+Persistent outlines draw first and green hover draws last.
 
-- `pointFromEvent()` converts client coordinates to canvas coordinates and calls `canvas.grid.getOffset()`.
-- `gridShape()` uses `canvas.grid.getVertices({i, j})`, with a center/shape fallback.
-- `renderOverlay()` draws into a non-interactive `PIXI.Graphics` child of `canvas.interface` or `canvas.stage`.
+## Definition-driven UI
 
-While Tile Viewer mode is active:
+Do not hard-code campaign terrain, tags, or discoverables in this module.
 
-- Any hovered tile receives a green outline.
-- A discovered, unclaimed tile has a persistent blue outline.
-- A claimed tile has a persistent gold outline.
-- Blue and gold are mutually exclusive; the green hover outline can coexist with either.
+- Terrain options come from `core.all("terrains")`.
+- Tag controls come from `core.all("tags")`; definitions with `states` render a state selector.
+- Discoverable options come from `core.all("discoverables")`.
+- Labels and categories come from `core.get(kind, id)`.
+- Building labels shown on existing slots come from `core.get("buildings", id)`.
 
-When mode is inactive, `renderOverlay()` clears all module highlights and pointer handlers do not open tiles.
+This allows the Liftland content set or another module to replace definitions without a Tile Manager release.
 
-## Viewer and editor
+## Legacy migration
 
-The Viewer and Manager share one fixed `#shm-pane` element. Its header stays outside the scrolling `.shm-modal-body`, so scrolling content cannot hide the drag bar. `dockModal()` positions the window just to the left of Foundry's right-side UI; dragging switches it to explicit screen coordinates.
+The hidden world setting `coreMigration` prevents repeated imports. Only the lowest-ID active GM performs migration.
 
-Players can open only saved public tile data. Their Viewer omits GM Notes, hidden content, **Edit Tile Data**, and reveal controls. GMs see all data and can switch to Tile Manager.
+The importer reads, but never deletes or rewrites:
 
-Images use Foundry's file picker. Point of Interest descriptions use Foundry's ProseMirror element when available and fall back to a plain textarea. Player Notes and GM Notes are plain textareas.
+- Journal flag: `flags.settlement-hex-manager.store`.
+- Page: `Private State JSON`.
+- Old path: `maps[sceneId].hexes[key]`.
+
+Rules:
+
+- If a Core tile already exists, skip it.
+- Common old terrain names map to Core terrain IDs.
+- Old hills and terrain tags become Core tags.
+- Old Difficulty becomes Core `adjust` relative to the previous default 15.
+- Discovered becomes revealed; mapped becomes one Explore; cleared/claimed becomes six Explores.
+- Old discoverable improvement labels are appended to notes, not converted into building IDs.
+- Images, region/zone, claimed state, and Points of Interest enter the extension envelope.
+- The old journal remains a backup.
+
+## Deletion
+
+The legacy `deleteTile` API and the world setting now clear only `tile.ext["settlement-hex-manager"]`. They save the remaining extension object through Core and preserve terrain, exploration, notes, discoverables, tile slots, settlement homes, and Settlement Manager buildings.
+
+Deleting a shared Core tile is outside this module's ownership boundary. A caller that explicitly needs that destructive operation must use Settlement Core's `tile.delete` action directly.
 
 ## Public API
 
-Access the API through:
-
 ```js
-const api = game.modules.get("settlement-hex-manager").api;
+game.modules.get("settlement-hex-manager").api
 ```
 
-### `api.showTileViewer()`
+- `showTileViewer()` opens the UI.
+- `getTile(sceneId, key)` returns a projected Core tile with Tile Manager metadata and computed values.
+- `saveTile(sceneId, key, draft)` converts and saves through Core.
+- `deleteTile(sceneId, key)` clears only Tile Manager's extension (safe backward-compatible behavior).
+- `clearTilePresentation(sceneId, key)` is the explicit alias for that operation.
+- `core` is the connected Core API reference for diagnostics.
 
-Opens the Viewer for the currently selected module tile, if any. It does not enable Tile Viewer mode or select a tile.
+New integrations should prefer Settlement Core's API. Tile Manager's API exists for UI-oriented callers and backward compatibility.
 
-### `await api.getTile(sceneId, key)`
+## Safe extension rules
 
-Returns the normalized saved tile. A GM receives private data; a player receives `publicHex()` output. Returns no saved record when the key is absent.
-
-### `await api.saveTile(sceneId, key, hex)`
-
-Requests a normalized save. The caller must be a GM. The host persists the change and refreshes public Scene data.
-
-### `await api.deleteTile(sceneId, key)`
-
-Deletes one saved tile record. The caller must be a GM.
-
-The API is intentionally small. Prefer these calls over directly editing the journal or Scene flags.
-
-## Core function inventory
-
-### `scripts/core.mjs`
-
-- `uid()` creates a random ID using Foundry's helper when available.
-- `clampInt(value, min, max)` normalizes bounded integers.
-- `keyOf(i, j)` creates the stored tile key.
-- `blankHex(id)` creates tile defaults.
-- `blankMap()` creates a map container.
-- `hexWithDefaults(id, hex)` overlays a record onto defaults.
-- `validateHex(hex)` normalizes, bounds, and migrates one record.
-- `exploredLabel(hex)` derives the human-readable exploration state.
-- `tileDCs(hex)` computes Travel, Explore, and Forage DCs.
-- `publicHex(hex)` creates a player-safe tile copy.
-
-### `scripts/module.mjs`
-
-- Storage: `readPublicMaps`, `syncPublicMaps`, `refreshPublicMaps`, `storePage`, `load`, `persist`.
-- Authority: `authority`, `host`, `mutate`, `request`, `onSocket`, `perform`.
-- Modal UI: `modalOpen`, `dockModal`, `installDrag`, `renderModal`, `modalClick`, `modalChange`.
-- Tile sub-editors: `mountRichEditors`, `featureRow`, `discoverableRow`, `readDiscoverableRow`.
-- Canvas: `pointFromEvent`, `gridShape`, `strokeHex`, `renderOverlay`, `clearHover`, `setTileViewerMode`, `hoverMove`, `tileClick`, `connectCanvas`.
-- Registration/lifecycle: `registerDocumentModel`, `startup`, and the Foundry hooks at the end of the file.
-
-Small unexported helpers near the top of `module.mjs` handle escaping, cloning, markup, notifications, current Scene/map lookup, debug logging, and public snapshots.
-
-## Settings
-
-- **Enable normal click tile viewer** (`enableSelection`, client): allows a left click in Tile Viewer mode to intercept the canvas and open a tile.
-- **Enable Settlement Tile Manager debug console logs** (`debugLogging`, client): logs store loading, hover conditions, clicks, canvas binding, and actions.
-- **Delete all Settlement Tile Manager tile data** (`deleteAllTileData`, world): GM-only momentary action. It asks for confirmation, deletes `maps`, and resets itself to false. It does not touch unrelated Foundry documents or other module data.
-
-## Foundry hooks
-
-- `init`: data model, settings, public API.
-- `ready`: socket subscription and initial data load.
-- `canvasReady`: public refresh, canvas binding, overlay refresh.
-- `updateScene`: player refresh when this module's Scene flags change.
-- `getSceneControlButtons`: adds the Tile Viewer toggle.
-
-## Landmark Feature Item subtype
-
-The manifest declares `documentTypes.Item.landmarkFeature`, and `registerDocumentModel()` installs its namespaced `TypeDataModel` as `settlement-hex-manager.landmarkFeature`. It currently has one HTML field named `description`. This subtype is independent of a tile's embedded `features[]` array.
+- Never add another tile store, socket channel, authority election, or public Scene flag.
+- Never replace `tile.slots` or `discoverable.slots` from the editor.
+- Preserve unknown Core fields and other modules' extension keys.
+- Store private presentation fields only under the extension's `gm` object.
+- Use Core registry IDs, not display labels, as saved terrain/tag/discoverable values.
+- Use Core calculations; do not recreate DC or Security formulas here.
+- Do not stop pointer propagation needed by Settlement Manager.
+- Add a contract test whenever a Core field or API call becomes required.
 
 ## Release procedure
 
-1. Increment the final numeric component of the version (for example `0.2.2.8` → `0.2.2.9`) unless the user explicitly chooses another version.
-2. Update `module.json` version plus `manifest` and `download` URLs.
-3. Update version references and release notes in `README.md` and `.github/workflows/release.yml`.
-4. Update this handoff when architecture or APIs change.
-5. Run `node --test tests/core.test.mjs` and syntax checks before publishing.
-6. Push to `main`. GitHub Actions builds the ZIP and publishes both the installable ZIP and `module.json` under the matching prerelease tag.
-
-The release ZIP must keep `module.json` at its root and include `README.md`, `HANDOFF.md`, `LICENSE`, `scripts`, `styles`, and `lang`. Do not perform manual post-publish validation unless specifically requested; the release workflow owns asset validation.
-
-## Safe extension guidance
-
-- Keep all private GM fields out of `publicHex()` and add a regression test for every new private field.
-- Route all mutations through `request()`/`perform()`/`mutate()` so multi-GM writes stay serialized and public flags stay synchronized.
-- Use Foundry grid APIs for location and vertices; do not recreate offset math from canvas dimensions.
-- Never write Actor, Item, Scene, or other-system data as part of tile deletion. The module may delete only its own tile records and flags.
-- Preserve unknown top-level private data during migrations unless a release explicitly documents its removal.
-- Keep the modal header outside the scroll container.
-- Keep player UI decisions based on sanitized data, not merely hidden CSS.
-
-## Current limitations
-
-- Automated tests cover pure data behavior, not a running Foundry client or PIXI rendering.
-- There is no automatic import/export UI beyond the module-owned journal storage.
-- Landmark Feature Items are not automatically linked to tile Points of Interest.
-- `showTileViewer()` depends on an existing in-memory tile selection.
-- The host-GM election is intentionally simple; the lowest active GM ID is authoritative.
+Increment the last numeric version component unless explicitly told otherwise. Update the manifest URLs, README, handoff, and workflow notes. Run the Node tests and syntax checks. Publishing `main` lets the existing workflow create the prerelease and upload the versioned ZIP plus `module.json`.

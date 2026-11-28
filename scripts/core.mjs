@@ -1,81 +1,142 @@
-/** Pure tile-domain rules with no dependency on Foundry. */
-export const FEATURE_TYPES = ["landmark", "refuge", "ruin", "structure", "bridge", "ford", "waterfall", "hazard", "farmland"];
-export const TERRAIN_TYPES = ["plains","forest","hills","mountains","swamp","aquatic","desert","arctic","urban","underground"];
-export const TERRAIN_TAGS = ["Lifted","Crystal Growth","Crystal Waters","Coastal"];
+/** Pure adapters between Settlement Tile Manager's UI and settlement-core's tile contract. */
+export const MODULE_ID = "settlement-hex-manager";
+export const CORE_ID = "settlement-core";
+export const CORE_MIN_VERSION = "0.3.0";
 
 export const uid = () => globalThis.crypto?.randomUUID?.() || `id-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-export const clampInt = (value, min=0, max=999999999) => Math.max(min, Math.min(max, Math.trunc(Number(value)||0)));
-export const keyOf = (row,col) => `${Math.trunc(row)},${Math.trunc(col)}`;
+export const clampInt = (value, min = 0, max = 999999999) => Math.max(min, Math.min(max, Math.trunc(Number(value) || 0)));
+export const keyOf = (row, col) => `${Math.trunc(row)},${Math.trunc(col)}`;
+const object = value => value && typeof value === "object" && !Array.isArray(value) ? value : {};
+const text = (value, max = 15000) => String(value ?? "").slice(0, max);
+const copy = value => structuredClone(value);
 
-export const blankHex = key => ({
-  id:key,name:"",region:"",zone:"",terrain:"plains",hillsOverlay:false,difficulty:15,
-  terrainTags:[],pathBonus:0,travelType:"",discovered:false,status:"unexplored",thumbnail:"",
-  security:0,cleared:false,claimed:false,owner:"",notes:"",gmNotes:"",features:[],discoverables:[]
-});
-export const blankMap = () => ({schema:2,revision:0,enabled:false,hexes:{}});
-export const hexWithDefaults = (key,value={}) => ({
-  ...blankHex(key),...value,
-  features:Array.isArray(value.features)?value.features:[],
-  discoverables:Array.isArray(value.discoverables)?value.discoverables:[]
-});
-
-export function validateHex(hex){
-  const h=hexWithDefaults(String(hex.id),hex);
-  if(h.status==="none"||h.status==="reconnoitered")h.status=h.status==="none"?"unexplored":"mapped";
-  if(!["unexplored","mapped"].includes(h.status))throw Error("Invalid exploration status");
-  if(!Array.isArray(h.features)||h.features.length>100)throw Error("Invalid Points of Interest");
-  h.features=h.features.map(f=>({
-    id:String(f.id||uid()),type:FEATURE_TYPES.includes(f.type)?f.type:"landmark",
-    name:String(f.name||"").slice(0,120),thumbnail:String(f.thumbnail||"").slice(0,1000),
-    revealed:!!f.revealed,description:String(f.description||"").slice(0,15000)
-  }));
-  if(!TERRAIN_TYPES.includes(h.terrain))h.terrain="plains";
-  h.hillsOverlay=!!h.hillsOverlay;
-  h.difficulty=clampInt(h.difficulty,0,99);
-  h.pathBonus=clampInt(h.pathBonus,0,99);
-  h.terrainTags=Array.isArray(h.terrainTags)?[...new Set(h.terrainTags.filter(tag=>TERRAIN_TAGS.includes(tag)))]:[];
-  if(!h.discoverables.length){
-    if(h.commodity&&h.commodity!=="none")h.discoverables.push({name:h.commodity,category:"Commodity",tier:1,modifier:0,found:true,improvements:[]});
-    if(h.camp&&h.camp!=="none")h.discoverables.push({name:h.camp,category:"Camp",tier:1,modifier:0,found:true,improvements:[]});
+export function compareVersions(left, right) {
+  const parts = value => String(value || "").split(".").map(v => Number.parseInt(v, 10) || 0);
+  const a = parts(left), b = parts(right);
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    const difference = (a[i] || 0) - (b[i] || 0);
+    if (difference) return Math.sign(difference);
   }
-  if(h.discoverables.length>100)throw Error("Invalid discoverables");
-  h.discoverables=h.discoverables.map(d=>{
-    const tier=clampInt(d.tier,1,4);
-    return {id:String(d.id||uid()),name:String(d.name||"").slice(0,120),category:String(d.category||"").slice(0,80),tier,
-      modifier:clampInt(d.modifier,-99,99),found:!!d.found,
-      improvements:(Array.isArray(d.improvements)?d.improvements:[]).slice(0,tier).map(v=>String(v||"").slice(0,120)).filter(Boolean)};
-  });
-  for(const f of ["name","region","terrain","travelType","owner","notes","gmNotes","thumbnail"])h[f]=String(h[f]||"").slice(0,f.endsWith("Notes")||f==="notes"?15000:200);
-  h.zone=String(h.zone||"").slice(0,100);
-  h.security=clampInt(h.security,0,999999);
-  for(const f of ["discovered","cleared","claimed"])h[f]=!!h[f];
-  if(h.claimed)h.discovered=true;
-  delete h.commodity;
-  delete h.camp;
-  return h;
+  return 0;
 }
 
-export function exploredLabel(hex){
-  if(!hex||!hex.discovered||hex.status==="unexplored")return "Unexplored";
-  const features=hex.features||[];
-  return features.length&&features.some(f=>!f.revealed)?"Partially Mapped":"Fully Explored";
+export function checkCoreApi(api) {
+  const required = ["getState", "getTile", "getTiles", "get", "all", "tileDCs", "tileSecurity", "isFullyExplored", "saveTile", "revealTile", "request"];
+  if (!api || typeof api !== "object") return { ok: false, version: "", missing: ["api"] };
+  const missing = required.filter(name => typeof api[name] !== "function");
+  return { ok: !missing.length && compareVersions(api.version, CORE_MIN_VERSION) >= 0, version: String(api.version || ""), missing };
 }
 
-export function tileDCs(hex){
-  const base=clampInt(hex?.difficulty,0,99);
-  const explored=exploredLabel(hex)==="Fully Explored"?-2:0;
-  const path=clampInt(hex?.pathBonus,0,99);
-  return {travel:Math.max(0,base+explored-path),explore:Math.max(0,base+explored),forage:Math.max(0,base+explored),exploredAdjustment:explored,pathBonus:path};
-}
+export const emptyMeta = () => ({ thumbnail: "", region: "", zone: "", owner: "", cleared: false, claimed: false, features: [] });
 
-export function publicHex(h){
-  if(!h?.discovered&&!h?.claimed)return null;
+function cleanFeature(feature) {
   return {
-    id:h.id,name:h.name,region:h.region,zone:h.zone,terrain:h.terrain,hillsOverlay:!!h.hillsOverlay,
-    difficulty:h.difficulty,terrainTags:[...(h.terrainTags||[])],pathBonus:h.pathBonus,travelType:h.travelType,
-    dcs:tileDCs(h),discovered:true,status:h.status,explored:exploredLabel(h),thumbnail:h.thumbnail,
-    security:h.security,cleared:h.cleared,claimed:h.claimed,owner:h.owner,notes:h.notes,
-    features:(h.features||[]).filter(f=>f.revealed).map(f=>({...f,revealed:true})),
-    discoverables:(h.discoverables||[]).filter(d=>d.found).map(d=>({...d,improvements:[...(d.improvements||[])]}))
+    id: text(feature?.id || uid(), 60),
+    name: text(feature?.name, 120),
+    thumbnail: text(feature?.thumbnail, 1000),
+    description: text(feature?.description, 15000),
+    revealed: !!feature?.revealed
   };
+}
+
+export function tileMeta(tile, isGM = false) {
+  const extension = object(tile?.ext?.[MODULE_ID]);
+  const publicMeta = { ...emptyMeta(), ...object(extension.public) };
+  const gmMeta = object(extension.gm);
+  const merged = isGM ? { ...publicMeta, ...gmMeta } : publicMeta;
+  merged.features = (Array.isArray(merged.features) ? merged.features : []).map(cleanFeature);
+  return merged;
+}
+
+export function viewTile(tile, { isGM = false, dcs = null, security = 0, fullyExplored = false } = {}) {
+  if (!tile) return null;
+  const meta = tileMeta(tile, isGM);
+  return {
+    ...copy(tile),
+    ...meta,
+    id: tile.key,
+    discovered: !!tile.revealed,
+    dcs,
+    security: Number(security) || 0,
+    fullyExplored: !!fullyExplored
+  };
+}
+
+function cleanDiscoverable(value, currentById = new Map()) {
+  const id = text(value?.id || uid(), 60);
+  const current = currentById.get(id) || {};
+  return {
+    ...current,
+    id,
+    type: text(value?.type, 80),
+    name: text(value?.name, 120),
+    tier: clampInt(value?.tier, 1, 4),
+    modifier: text(value?.modifier, 60),
+    found: !!value?.found,
+    slots: copy(current.slots || value?.slots || []),
+    notes: text(current.notes || value?.notes, 5000),
+    gmNotes: text(current.gmNotes || value?.gmNotes, 5000)
+  };
+}
+
+/** Build a settlement-core tile.save patch while preserving building slots and other modules' extensions. */
+export function toCorePatch(draft, current = null) {
+  const existing = current || {};
+  const currentDiscoverables = new Map((existing.discoverables || []).map(value => [value.id, value]));
+  const allFeatures = (draft.features || []).map(cleanFeature);
+  const publicMeta = {
+    thumbnail: text(draft.thumbnail, 1000), region: text(draft.region, 120), zone: text(draft.zone, 120),
+    owner: text(draft.owner, 120), cleared: !!draft.cleared, claimed: !!draft.claimed,
+    features: allFeatures.filter(feature => feature.revealed)
+  };
+  const gmMeta = { features: allFeatures };
+  return {
+    name: text(draft.name, 120),
+    terrain: text(draft.terrain, 60),
+    adjust: clampInt(draft.adjust, -20, 20),
+    tags: Object.fromEntries(Object.entries(object(draft.tags)).filter(([, value]) => value)),
+    revealed: !!draft.revealed,
+    explores: clampInt(draft.explores, 0, 99),
+    discoverables: (draft.discoverables || []).map(value => cleanDiscoverable(value, currentDiscoverables)),
+    notes: text(draft.notes),
+    gmNotes: text(draft.gmNotes),
+    ext: {
+      ...copy(object(existing.ext)),
+      [MODULE_ID]: { public: publicMeta, gm: gmMeta }
+    }
+  };
+}
+
+const TERRAIN_MAP = {
+  plains: "grassland", forest: "woodland", hills: "grassland", mountains: "mountain",
+  swamp: "wetland", aquatic: "water", desert: "grassland", arctic: "grassland",
+  urban: "grassland", underground: "mountain"
+};
+const TAG_MAP = { "Lifted": "lifted", "Crystal Growth": "crystal-growth", "Crystal Waters": "crystal-waters", "Coastal": "coastal" };
+
+/** Convert one pre-Core Tile Manager record without deleting or modifying the old store. */
+export function migrateLegacyHex(hex, { terrainIds = [], discoverableIds = [] } = {}) {
+  const terrainSet = new Set(terrainIds), discoverableSet = new Set(discoverableIds);
+  let terrain = TERRAIN_MAP[hex?.terrain] || text(hex?.terrain, 60);
+  if (!terrainSet.has(terrain)) terrain = terrainSet.has("grassland") ? "grassland" : (terrainIds[0] || terrain);
+  const tags = {};
+  if (hex?.hillsOverlay || hex?.terrain === "hills") tags["low-hills"] = true;
+  for (const tag of hex?.terrainTags || []) tags[TAG_MAP[tag] || String(tag).toLowerCase().replaceAll(" ", "-")] = true;
+  const discoverables = (hex?.discoverables || []).map(value => {
+    const fallback = String(value?.name || value?.category || "discoverable").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    const type = discoverableSet.has(value?.type) ? value.type : (discoverableSet.has(fallback) ? fallback : value?.type || fallback);
+    const improvements = (value?.improvements || []).filter(Boolean);
+    return {
+      id: value?.id || uid(), type, name: value?.name || value?.category || "Discoverable",
+      tier: clampInt(value?.tier, 1, 4), modifier: text(value?.modifier, 60), found: !!value?.found,
+      slots: [], notes: improvements.length ? `Legacy improvements: ${improvements.join(", ")}` : "", gmNotes: ""
+    };
+  });
+  const explores = hex?.claimed || hex?.cleared ? 6 : (hex?.status === "mapped" ? 1 : 0);
+  return toCorePatch({
+    name: hex?.name, terrain, adjust: clampInt(Number(hex?.difficulty ?? 15) - 15, -20, 20), tags,
+    revealed: !!(hex?.discovered || hex?.claimed), explores, discoverables,
+    notes: hex?.notes, gmNotes: hex?.gmNotes, thumbnail: hex?.thumbnail, region: hex?.region,
+    zone: hex?.zone, owner: hex?.owner, cleared: hex?.cleared, claimed: hex?.claimed, features: hex?.features || []
+  });
 }

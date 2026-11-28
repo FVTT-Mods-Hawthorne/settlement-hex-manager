@@ -50,7 +50,7 @@ jobs:
           if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             gh release create "$RELEASE_TAG" \
               --title "$RELEASE_TAG beta" \
-              --notes "Settlement Tile Manager v0.2.2.8 beta removes settlement management, resources, phases, leaders, teams, activities, and Actor integration so the module is focused solely on Scene tile exploration. It also adds a detailed HANDOFF.md for maintainers. Includes a versioned module.json manifest and installable module ZIP." \
+              --notes "Settlement Tile Manager v0.2.2.9 beta uses Settlement Core as the single source of truth for tiles, definitions, visibility, DCs, discoverables, building slots, and persistence. It preserves Settlement Manager data, supports both map tools together, and migrates the previous private tile journal without deleting it. Includes module.json and an installable ZIP." \
               --prerelease \
               --target "$GITHUB_SHA"
           fi
@@ -70,4 +70,3 @@ jobs:
           gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name' | tee /tmp/release-assets.txt
           grep -Fx 'module.json' /tmp/release-assets.txt
           grep -Fx "$RELEASE_ZIP" /tmp/release-assets.txt
-

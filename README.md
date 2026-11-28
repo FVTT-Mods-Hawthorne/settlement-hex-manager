@@ -1,56 +1,91 @@
-# Settlement Tile Manager — v0.2.2.8 beta
+# Settlement Tile Manager — v0.2.2.9 beta
 
-A Foundry VTT v14 module for attaching exploration data to Scene grid tiles. This release is intentionally tile-only: settlement management, settlement resources/phases, leaders, teams, activities, and Actor integration have been removed.
+A Foundry VTT v14 viewer and editor for tiles owned by **Settlement Core**. This module supplies the map UI; Settlement Core is the single source of truth for tile records, terrain and tag definitions, exploration, discoverables, calculated DCs, player visibility, building slots, and persistence.
 
-## Install
+## Requirements
 
-Use this manifest URL in Foundry's **Install Module** dialog:
+- Foundry VTT 14.
+- [Settlement Core](https://github.com/FVTT-Mods-Hawthorne/settlement-core-module) 0.3.0 or later.
+- Optional: [Settlement Manager](https://github.com/FridgeboyAI/settlement-manager-module/tree/test). Both modules operate on the same Core tiles.
 
-`https://github.com/powercore2000/settlement-hex-manager/releases/download/v0.2.2.8/module.json`
+Install using:
 
-The release also contains `settlement-hex-manager-v0.2.2.8.zip`. For a manual install, extract that archive into the Foundry user-data `Data/modules/` directory and restart Foundry.
+`https://github.com/FVTT-Mods-Hawthorne/settlement-hex-manager/releases/download/v0.2.2.9/module.json`
 
-## Tile workflow
+Foundry should offer to install Settlement Core from the dependency declared in `module.json`.
 
-1. Enable **Tile Viewer** from the Scene controls.
-2. Hover any grid tile for a green outline.
-3. Click a tile. A GM can create or edit its data; a player can open data that is available to players.
-4. Saved discovered tiles keep a blue outline. Claimed tiles keep a gold outline instead. These outlines only appear while Tile Viewer mode is active.
+## What it does
 
-The Tile Manager supports:
+Enable **Tile Viewer** in Scene controls, then click a Scene grid tile.
 
-- Terrain, optional hills overlay, difficulty, path bonus, travel notes, and terrain tags.
-- Computed Travel, Explore, and Forage DCs. Fully Explored tiles receive a −2 adjustment and paths reduce Travel DC.
-- Exploration state, security, owner, normal Player Notes, and private GM Notes.
-- Tier 1–4 discoverables with category, modifier, found/hidden state, and one improvement slot per tier.
-- Points of Interest with a name, Foundry file-browser image, formatted description, and player visibility toggle.
-- Per-tile deletion and a GM-only module setting that deletes every tile record owned by this module.
+- Green outline: currently hovered tile.
+- Blue outline: revealed Core tile.
+- Gold outline: claimed tile. Claimed is Tile Manager presentation metadata stored in Core's extension envelope.
+- No outlines or click interception while Tile Viewer mode is off.
 
-## Access and privacy
+The GM editor uses Settlement Core's live registries for:
 
-All GMs use one module-owned private Journal Entry as the authoritative tile database. The module grants every GM owner access to that journal so data created by one GM can be edited by another.
+- Terrain choices and per-tile Difficulty adjustment.
+- Boolean and state-valued terrain tags.
+- Revealed state and successful Explore count.
+- Discoverable types, names, tiers, modifiers, and found state.
+- Travel, Explore, and Forage DCs.
+- Security from finished Core buildings.
 
-Players receive a sanitized copy through Scene flags and socket snapshots. Player data excludes GM Notes, hidden Points of Interest, and discoverables that have not been found. Player tile viewers also omit editing and reveal controls.
+Tile Manager adds presentation fields without competing with Core:
 
-## Landmark Feature items
+- Tile image, region, zone, owner, cleared, and claimed.
+- Points of Interest with an image, formatted description, and player visibility.
+- Plain Player Notes and GM Notes.
 
-The module registers a **Landmark Feature** Item subtype so it is available from Foundry's Create Item menu. Tile Points of Interest are stored directly on their tile; the Item subtype is available for world-level content authors who want separate reusable documents.
+## Settlement Manager interoperability
 
-## API and architecture
+Settlement Manager's Hex Buildings panel reads the same Core tile returned by `settlement-core.api.getTile(sceneId, key)`.
 
-The public module API provides `showTileViewer()`, `getTile(sceneId, key)`, `saveTile(sceneId, key, hex)`, and `deleteTile(sceneId, key)`. Mutating calls require a GM and are serialized by the active host GM.
+- Tile Manager never writes its own tile database.
+- Saving a tile preserves Core's tile building slots.
+- Saving discoverables preserves each discoverable's Settlement Manager improvement slots and notes.
+- Tile Manager does not define or calculate building effects, Security, Work profiles, or settlement state.
+- When Tile Viewer and Hex Buildings modes are both active, a click may open both windows; Tile Manager no longer stops the event before Settlement Manager receives it.
 
-See [HANDOFF.md](HANDOFF.md) for the data model, storage design, socket protocol, lifecycle hooks, public API, function inventory, and extension notes.
+## Visibility
+
+Settlement Core publishes the player-safe copy. Tile Manager does not maintain a second public database.
+
+- Unrevealed tiles are absent for players.
+- Unfound discoverables and GM Notes are removed by Core.
+- Visible Points of Interest are stored in `tile.ext.settlement-hex-manager.public`.
+- The complete Point of Interest list is stored in `tile.ext.settlement-hex-manager.gm`.
+
+## Upgrade from v0.2.2.8
+
+On the first load with a hosting GM and Settlement Core active, Tile Manager looks for its old private journal and copies tiles that do not already exist in Core. Existing Core tiles win and are never overwritten. The old journal remains untouched as a backup.
+
+Legacy conversion maps common terrain/tag names, exploration state, discoverables, notes, images, and Points of Interest. Old free-text discoverable improvements are retained in the discoverable notes; Settlement Manager building slots cannot be inferred from those labels.
+
+## Public API
+
+```js
+const tiles = game.modules.get("settlement-hex-manager").api;
+```
+
+- `tiles.showTileViewer()` opens the current viewer.
+- `tiles.getTile(sceneId, key)` returns the UI view of the Core tile.
+- `await tiles.saveTile(sceneId, key, draft)` saves through Core's GM-hosted pipeline.
+- `await tiles.deleteTile(sceneId, key)` clears Tile Manager's presentation extension while preserving the shared Core tile. `clearTilePresentation` is an explicit alias.
+- `tiles.core` exposes the connected Settlement Core API for diagnostics only.
+
+For rules, building, settlement, or raw tile operations, use `game.modules.get("settlement-core").api` directly.
 
 ## Development
 
-Run the core regression tests with:
-
 ```sh
 node --test tests/core.test.mjs
+node --check scripts/core.mjs
+node --check scripts/module.mjs
 ```
 
-The GitHub Actions release workflow validates the manifest URLs, builds the installable ZIP, creates the prerelease, and uploads both the ZIP and `module.json`.
+See [HANDOFF.md](HANDOFF.md) for schemas, ownership boundaries, lifecycle hooks, migration rules, and extension guidance.
 
 ## License
 
